@@ -1,0 +1,7 @@
+---
+description: Specifies the use of 'def' and 'async def' for function definitions within FastAPI routers.
+globs: **/routers/*.py
+---
+- Use def for pure functions and async def for asynchronous operations.
+- Use type hints for all function signatures. Prefer Pydantic models over raw dictionaries for input validation.
+- Prefer the `Annotated` form for FastAPI parameter metadata when possible (e.g. `Annotated[str, Query()]`, `Annotated[Model, Depends()]`, `Annotated[int, Path(...)]`) instead of equivalent default-parameter styles like `param: str = Query(...)`.
