@@ -88,7 +88,6 @@ class AuthService:
         logger.debug("otp code=%s", code)
 
         return LoginResponse(
-            status="need_verification",
             message="OTP sent to email",
             login_request_id=req_id,
             otp_expires_in=self._otp_ttl,
@@ -194,7 +193,7 @@ class AuthService:
             expire_minutes=self._access_expire,
         )
 
-        return VerifyResponse(status="success", access_token=access, refresh_token=refresh_plain)
+        return VerifyResponse(access_token=access, refresh_token=refresh_plain)
 
     def _decode_refresh_payload(self, token: str) -> dict[str, object]:
         try:
@@ -355,7 +354,7 @@ class AuthService:
             )
         if row.revoked_at is None:
             await self._auth.revoke_session_by_id(session_id, now)
-        return LogoutResponse(status="success", message="logged out")
+        return LogoutResponse(message="logged out")
 
     async def update_device_notifications(
         self,
@@ -365,7 +364,7 @@ class AuthService:
     ) -> DeviceNotificationsResponse:
         now = datetime.now(UTC)
         if body.push_provider is None and body.push_token is None:
-            return DeviceNotificationsResponse(status="success")
+            return DeviceNotificationsResponse()
         row = await self._auth.get_session(session_id)
         if row is None:
             raise api_http_exception(
@@ -388,8 +387,8 @@ class AuthService:
             push_token=body.push_token,
             now=now,
         )
-        return DeviceNotificationsResponse(status="success")
+        return DeviceNotificationsResponse()
 
     async def delete_all_sessions(self, user_id: UUID) -> RevokeTokenResponse:
         await self._auth.revoke_all_active_for_user(user_id, datetime.now(UTC))
-        return RevokeTokenResponse(status="success", message="all sessions deleted")
+        return RevokeTokenResponse(message="all sessions deleted")

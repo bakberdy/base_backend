@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     jwt_secret_key: str = "change-me-in-production-use-long-random-secret"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 5
+    access_token_expire_minutes: int = 1
     refresh_token_expire_days: int = 14
     otp_expire_seconds: int = 600
     otp_max_attempts: int = 5

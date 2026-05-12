@@ -27,7 +27,6 @@ class LoginBody(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    status: str
     message: str
     login_request_id: str
     otp_expires_in: int
@@ -40,7 +39,6 @@ class VerifyBody(BaseModel):
 
 
 class VerifyResponse(BaseModel):
-    status: str
     access_token: str
     refresh_token: str
 
@@ -60,7 +58,7 @@ class DeviceNotificationsBody(BaseModel):
 
 
 class DeviceNotificationsResponse(BaseModel):
-    status: str
+    pass
 
 
 class DevicePublic(BaseModel):
@@ -112,12 +110,10 @@ class SessionPublic(BaseModel):
 
 
 class LogoutResponse(BaseModel):
-    status: str
     message: str
 
 
 class RevokeTokenResponse(BaseModel):
-    status: str
     message: str
 
 
@@ -130,4 +126,4 @@ class AuthErrorDetails(ErrorDetails):
     blocked_until: str | None = Field(
         default=None,
         description="Time until the user is blocked"
-    )
+)

@@ -74,7 +74,7 @@ async def auth_delete_session(
     svc: AuthServiceDep,
 ) -> RevokeTokenResponse:
     await svc.revoke_session_by_session_id(user_id, session_id)
-    return RevokeTokenResponse(status="success", message="session deleted")
+    return RevokeTokenResponse(message="session deleted")
 
 
 @router.patch("/device/notifications", response_model=DeviceNotificationsResponse)
