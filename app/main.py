@@ -109,7 +109,11 @@ def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
         title=f"Mobile app API ({settings.app_env})",
-        description=f"Environment: **{settings.app_env}**.",
+        description=(
+            f"Environment: **{settings.app_env}**.\n\n"
+            "Localized responses support `en`, `kk`, and `ru` through the "
+            "`Accept-Language` header."
+        ),
         lifespan=lifespan,
     )
     application.state.limiter = limiter

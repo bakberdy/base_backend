@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
+from app.core.i18n import SUPPORTED_LOCALES
 from app.schemas.error import ErrorResponse
 
 _HTTP_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
@@ -53,8 +54,46 @@ def _normalize_422_descriptions(schema: dict[str, Any]) -> None:
                 r422["description"] = "Validation failed"
 
 
+def _inject_accept_language_parameter(schema: dict[str, Any]) -> None:
+    supported = ", ".join(sorted(SUPPORTED_LOCALES))
+    components = schema.setdefault("components", {}).setdefault("parameters", {})
+    components["AcceptLanguage"] = {
+        "name": "Accept-Language",
+        "in": "header",
+        "required": False,
+        "description": (
+            f"Preferred response language. Supported locales: {supported}. "
+            "Examples: `kk`, `ru`, `en`, `kk-KZ`, `ru-RU`, `en-US`, "
+            "`ru;q=0.9,en;q=0.8`."
+        ),
+        "schema": {
+            "type": "string",
+            "default": "en",
+            "example": "kk",
+        },
+    }
+    for path_item in schema.get("paths", {}).values():
+        if not isinstance(path_item, dict):
+            continue
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+            parameters = operation.setdefault("parameters", [])
+            if not isinstance(parameters, list):
+                continue
+            already_present = any(
+                isinstance(param, dict)
+                and param.get("name") == "Accept-Language"
+                and param.get("in") == "header"
+                for param in parameters
+            )
+            if not already_present:
+                parameters.insert(0, {"$ref": "#/components/parameters/AcceptLanguage"})
+
+
 def patch_openapi_schema(schema: dict[str, Any]) -> None:
     _inject_error_response_schema(schema)
+    _inject_accept_language_parameter(schema)
     _replace_http_validation_refs(schema)
     _strip_legacy_validation_models(schema)
     _normalize_422_descriptions(schema)

@@ -9,10 +9,42 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from pydantic import ValidationError
 
-from app.core.i18n import _
+from app.core.i18n import _, N_
 from app.schemas.error import ErrorDetails, ErrorResponse, ErrorType, FieldError
 
 logger = logging.getLogger(__name__)
+
+_VALIDATION_MESSAGE_KEYS = {
+    "missing": N_("field_required"),
+    "value_error": N_("invalid_value"),
+    "string_type": N_("invalid_string"),
+    "string_too_short": N_("string_too_short"),
+    "string_too_long": N_("string_too_long"),
+    "string_pattern_mismatch": N_("invalid_format"),
+    "int_parsing": N_("invalid_integer"),
+    "int_type": N_("invalid_integer"),
+    "bool_parsing": N_("invalid_boolean"),
+    "bool_type": N_("invalid_boolean"),
+    "uuid_parsing": N_("invalid_uuid"),
+    "uuid_type": N_("invalid_uuid"),
+    "greater_than_equal": N_("value_too_small"),
+    "less_than_equal": N_("value_too_large"),
+    "url_parsing": N_("invalid_url"),
+}
+
+
+def _localized_response(body: ErrorResponse) -> ErrorResponse:
+    details = body.details
+    if details.field_errors:
+        details = details.model_copy(
+            update={
+                "field_errors": [
+                    error.model_copy(update={"message": _(error.message)})
+                    for error in details.field_errors
+                ],
+            },
+        )
+    return body.model_copy(update={"message": _(body.message), "details": details})
 
 
 def _error_details_from_extra(
@@ -51,10 +83,10 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
 
     if isinstance(detail, dict):
         try:
-            return ErrorResponse.model_validate(detail)
+            return _localized_response(ErrorResponse.model_validate(detail))
         except ValidationError:
-            message = str(detail.get(
-                "message", detail.get("msg", _("request_failed"))))
+            message_key = str(detail.get(
+                "message_key", detail.get("message", detail.get("msg", "request_failed"))))
             code = int(detail["code"]) if detail.get(
                 "code") is not None else status
             raw_details = detail.get("details")
@@ -64,13 +96,21 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
                 if k not in ("message", "msg", "code", "details")
             }
             normalized = _error_details_from_extra(code, raw_details, rest)
-            return ErrorResponse(message=_(message), details=normalized, code=code)
+            return _localized_response(
+                ErrorResponse(
+                    message=message_key,
+                    details=normalized,
+                    code=code,
+                ),
+            )
 
     if isinstance(detail, str):
-        return ErrorResponse(
-            message=_(detail),
-            details=ErrorDetails(status_code=status, type=ErrorType.SNACKBAR),
-            code=status,
+        return _localized_response(
+            ErrorResponse(
+                message=detail,
+                details=ErrorDetails(status_code=status, type=ErrorType.SNACKBAR),
+                code=status,
+            ),
         )
 
     if isinstance(detail, list):
@@ -79,10 +119,12 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
             "type": ErrorType.INLINE_ERROR.value,
             "payload": detail,
         })
-        return ErrorResponse(
-            message=_("request_failed"),
-            details=details,
-            code=status,
+        return _localized_response(
+            ErrorResponse(
+                message="request_failed",
+                details=details,
+                code=status,
+            ),
         )
 
     details = ErrorDetails.model_validate({
@@ -90,7 +132,13 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
         "type": ErrorType.SNACKBAR.value,
         "payload": detail,
     })
-    return ErrorResponse(message=_("request_failed"), details=details, code=status)
+    return _localized_response(
+        ErrorResponse(
+            message="request_failed",
+            details=details,
+            code=status,
+        ),
+    )
 
 
 def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
@@ -102,8 +150,15 @@ def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
         loc = err.get("loc") or ()
         parts = [str(p) for p in loc if p != "body"]
         field_name = ".".join(parts) if parts else "request"
-        msg = err.get("msg") or "Invalid value"
-        out.append(FieldError(field_name=field_name, message=_(str(msg))))
+        raw_type = err.get("type")
+        error_type = raw_type if isinstance(raw_type, str) else "value_error"
+        message_key = _VALIDATION_MESSAGE_KEYS.get(error_type, "invalid_value")
+        out.append(
+            FieldError(
+                field_name=field_name,
+                message=message_key,
+            ),
+        )
     return out
 
 
@@ -120,18 +175,24 @@ async def validation_exception_handler(_request: Request, exc: Exception) -> JSO
         type=ErrorType.INLINE_ERROR,
         field_errors=_validation_field_errors(exc.errors()),
     )
-    body = ErrorResponse(message=_("validation_failed"),
-                         code=422, details=details)
+    body = _localized_response(
+        ErrorResponse(
+            message="validation_failed",
+            code=422,
+            details=details,
+        ),
+    )
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
 
 async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
     logger.exception("Unhandled server error")
-    body = ErrorResponse(
-        message=_("service_unavailable_try_later"),
-        details=ErrorDetails(
-            status_code=500, type=ErrorType.ALERT),
-        code=500,
+    body = _localized_response(
+        ErrorResponse(
+            message="service_unavailable_try_later",
+            details=ErrorDetails(status_code=500, type=ErrorType.ALERT),
+            code=500,
+        ),
     )
     return JSONResponse(status_code=500, content=body.model_dump(mode="json"))
 

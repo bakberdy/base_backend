@@ -5,10 +5,12 @@ from contextvars import ContextVar, Token
 from functools import lru_cache
 from pathlib import Path
 
+from babel.core import negotiate_locale
 from starlette.requests import Request
 
 DEFAULT_LOCALE = "en"
 SUPPORTED_LOCALES = frozenset({"en", "kk", "ru"})
+_SUPPORTED_LOCALE_LIST = sorted(SUPPORTED_LOCALES)
 
 _LOCALES_DIR = Path(__file__).resolve().parents[1] / "locales"
 _current_locale: ContextVar[str] = ContextVar("current_locale", default=DEFAULT_LOCALE)
@@ -27,10 +29,6 @@ def normalize_locale(value: str | None) -> str:
 
 
 def locale_from_request(request: Request) -> str:
-    explicit = request.headers.get("x-locale") or request.query_params.get("locale")
-    if explicit:
-        return normalize_locale(explicit)
-
     accept_language = request.headers.get("accept-language")
     if not accept_language:
         return DEFAULT_LOCALE
@@ -41,19 +39,25 @@ def locale_from_request(request: Request) -> str:
         if not part:
             continue
         language, _, raw_q = part.partition(";")
+        if language.strip() == "*":
+            continue
         weight = 1.0
         if raw_q.strip().startswith("q="):
             try:
                 weight = float(raw_q.strip()[2:])
             except ValueError:
                 weight = 0.0
-        choices.append((weight, normalize_locale(language)))
+        if weight <= 0:
+            continue
+        choices.append((weight, language.strip().replace("-", "_")))
 
     if not choices:
         return DEFAULT_LOCALE
 
     choices.sort(reverse=True)
-    return choices[0][1]
+    preferred = [locale for _, locale in choices]
+    negotiated = negotiate_locale(preferred, _SUPPORTED_LOCALE_LIST, sep="_")
+    return normalize_locale(negotiated)
 
 
 def set_locale(locale: str) -> Token[str]:
@@ -82,4 +86,9 @@ def gettext_message(message: str) -> str:
     return _translation(get_locale()).gettext(message)
 
 
+def gettext_noop(message: str) -> str:
+    return message
+
+
 _ = gettext_message
+N_ = gettext_noop

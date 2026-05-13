@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-13 16:16+0500\n"
+"POT-Creation-Date: 2026-05-13 16:25+0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,17 +17,52 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.16.0\n"
 
-#: app/api/error_handlers.py:57 app/api/error_handlers.py:83
-#: app/api/error_handlers.py:93
-msgid "request_failed"
+#: app/api/error_handlers.py:18
+msgid "field_required"
 msgstr ""
 
-#: app/api/error_handlers.py:123
-msgid "validation_failed"
+#: app/api/error_handlers.py:19
+msgid "invalid_value"
 msgstr ""
 
-#: app/api/error_handlers.py:131
-msgid "service_unavailable_try_later"
+#: app/api/error_handlers.py:20
+msgid "invalid_string"
+msgstr ""
+
+#: app/api/error_handlers.py:21
+msgid "string_too_short"
+msgstr ""
+
+#: app/api/error_handlers.py:22
+msgid "string_too_long"
+msgstr ""
+
+#: app/api/error_handlers.py:23
+msgid "invalid_format"
+msgstr ""
+
+#: app/api/error_handlers.py:24 app/api/error_handlers.py:25
+msgid "invalid_integer"
+msgstr ""
+
+#: app/api/error_handlers.py:26 app/api/error_handlers.py:27
+msgid "invalid_boolean"
+msgstr ""
+
+#: app/api/error_handlers.py:28 app/api/error_handlers.py:29
+msgid "invalid_uuid"
+msgstr ""
+
+#: app/api/error_handlers.py:30
+msgid "value_too_small"
+msgstr ""
+
+#: app/api/error_handlers.py:31
+msgid "value_too_large"
+msgstr ""
+
+#: app/api/error_handlers.py:32
+msgid "invalid_url"
 msgstr ""
 
 #: app/modules/auth/deps.py:50

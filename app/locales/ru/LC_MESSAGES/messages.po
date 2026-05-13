@@ -18,6 +18,39 @@ msgstr "Запрос не выполнен"
 msgid "invalid_value"
 msgstr "Недопустимое значение"
 
+msgid "field_required"
+msgstr "Поле обязательно"
+
+msgid "invalid_string"
+msgstr "Недопустимое текстовое значение"
+
+msgid "string_too_short"
+msgstr "Текст слишком короткий"
+
+msgid "string_too_long"
+msgstr "Текст слишком длинный"
+
+msgid "invalid_format"
+msgstr "Недопустимый формат"
+
+msgid "invalid_integer"
+msgstr "Недопустимое число"
+
+msgid "invalid_boolean"
+msgstr "Недопустимое логическое значение"
+
+msgid "invalid_uuid"
+msgstr "Недопустимый идентификатор"
+
+msgid "value_too_small"
+msgstr "Значение слишком маленькое"
+
+msgid "value_too_large"
+msgstr "Значение слишком большое"
+
+msgid "invalid_url"
+msgstr "Недопустимый URL"
+
 msgid "validation_failed"
 msgstr "Ошибка валидации"
 

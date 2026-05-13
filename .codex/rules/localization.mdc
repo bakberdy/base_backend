@@ -8,8 +8,10 @@ globs: app/**/*.py,app/locales/**/*.po,babel.cfg,pyproject.toml,requirements.txt
 - Support `en`, `kk`, and `ru` for user-facing API text.
 - Use `app.core.i18n._` for every user-facing error message and response message returned to clients.
 - Use stable snake_case keys as gettext msgids, for example `user_not_found` and `invalid_token`. Do not use English sentences as localization keys.
+- Keep stable localization keys internal; do not expose `message_key` in public API responses unless explicitly requested.
+- Map framework validation error types to snake_case localization keys. Do not translate raw English framework messages.
 - Put translated values in `app/locales/{locale}/LC_MESSAGES/messages.po`.
 - Compile updated catalogs to `messages.mo` after changing PO files.
-- Select request locale from `X-Locale`, `locale` query parameter, or `Accept-Language`, in that priority order.
+- Select request locale from the `Accept-Language` header and expose that header in OpenAPI for every operation.
 - Do not create endpoint-local translation dictionaries. Reuse the shared i18n layer and Babel/gettext catalogs.
 - Internal logs, SQL strings, enum values, and developer-only runtime diagnostics can remain English unless they are returned to API clients.

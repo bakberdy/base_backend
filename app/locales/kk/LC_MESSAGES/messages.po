@@ -18,6 +18,39 @@ msgstr "Сұрау орындалмады"
 msgid "invalid_value"
 msgstr "Жарамсыз мән"
 
+msgid "field_required"
+msgstr "Өріс міндетті"
+
+msgid "invalid_string"
+msgstr "Мәтін мәні жарамсыз"
+
+msgid "string_too_short"
+msgstr "Мәтін тым қысқа"
+
+msgid "string_too_long"
+msgstr "Мәтін тым ұзын"
+
+msgid "invalid_format"
+msgstr "Пішімі жарамсыз"
+
+msgid "invalid_integer"
+msgstr "Сан жарамсыз"
+
+msgid "invalid_boolean"
+msgstr "Логикалық мән жарамсыз"
+
+msgid "invalid_uuid"
+msgstr "Идентификатор жарамсыз"
+
+msgid "value_too_small"
+msgstr "Мән тым кіші"
+
+msgid "value_too_large"
+msgstr "Мән тым үлкен"
+
+msgid "invalid_url"
+msgstr "URL жарамсыз"
+
 msgid "validation_failed"
 msgstr "Валидация қатесі"
 

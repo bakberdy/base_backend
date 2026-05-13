@@ -18,6 +18,39 @@ msgstr "Request failed"
 msgid "invalid_value"
 msgstr "Invalid value"
 
+msgid "field_required"
+msgstr "Field is required"
+
+msgid "invalid_string"
+msgstr "Invalid text value"
+
+msgid "string_too_short"
+msgstr "Text is too short"
+
+msgid "string_too_long"
+msgstr "Text is too long"
+
+msgid "invalid_format"
+msgstr "Invalid format"
+
+msgid "invalid_integer"
+msgstr "Invalid number"
+
+msgid "invalid_boolean"
+msgstr "Invalid boolean value"
+
+msgid "invalid_uuid"
+msgstr "Invalid identifier"
+
+msgid "value_too_small"
+msgstr "Value is too small"
+
+msgid "value_too_large"
+msgstr "Value is too large"
+
+msgid "invalid_url"
+msgstr "Invalid URL"
+
 msgid "validation_failed"
 msgstr "Validation failed"
 
