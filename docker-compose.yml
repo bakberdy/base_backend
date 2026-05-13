@@ -21,6 +21,7 @@ services:
       - "8000:8000"
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
+      POSTGRES_HOST: postgres
     env_file:
       - config/run/config.${ENVIRONMENT}.env
     depends_on:

@@ -1,3 +1,4 @@
+import socket
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
@@ -32,6 +33,35 @@ def _pg_endpoint_hint(dsn: str) -> str:
     return f"{host}:{port}"
 
 
+def _caused_by_dns_failure(exc: BaseException) -> bool:
+    cur: BaseException | None = exc
+    seen: set[int] = set()
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, socket.gaierror):
+            return True
+        cur = cur.__cause__
+    return False
+
+
+def _pg_hostname(dsn: str) -> str | None:
+    host = urlparse(dsn).hostname
+    return host.lower() if host else None
+
+
+def _connection_refused_hint(hostname: str | None) -> str:
+    if hostname in ("127.0.0.1", "localhost", "::1"):
+        return (
+            "Nothing is listening there yet. From mobile_app_backend run "
+            "`make postgres-up` (or `docker compose up -d postgres`), wait until "
+            "the container is healthy, then start uvicorn again."
+        )
+    return (
+        "Ensure Postgres is running. For uvicorn on the host use POSTGRES_HOST=127.0.0.1; "
+        "inside Docker Compose the api service uses hostname `postgres`."
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -50,13 +80,28 @@ async def lifespan(app: FastAPI):
             "Ensure Postgres is up (`docker compose up -d`), port 5432 is free, and "
             "try DATABASE_URL with host 127.0.0.1 instead of localhost."
         ) from exc
-    except (ConnectionRefusedError, OSError) as exc:
+    except ConnectionRefusedError as exc:
+        await engine.dispose()
+        dsn = settings.database_url
+        target = _pg_endpoint_hint(dsn)
+        hint = _connection_refused_hint(_pg_hostname(dsn))
+        raise RuntimeError(
+            f"Cannot reach PostgreSQL at {target} (connection refused). {hint}"
+        ) from exc
+    except OSError as exc:
         await engine.dispose()
         target = _pg_endpoint_hint(settings.database_url)
+        if _caused_by_dns_failure(exc):
+            raise RuntimeError(
+                f"Could not resolve PostgreSQL host at {target}. "
+                "The hostname `postgres` only works inside Docker's network. "
+                "For local uvicorn use POSTGRES_HOST=127.0.0.1 in config.development.env "
+                "(Compose sets POSTGRES_HOST=postgres for the api service)."
+            ) from exc
         raise RuntimeError(
-            f"Cannot reach PostgreSQL at {target} (connection refused). "
-            "Start the database first, e.g. from the project root: `docker compose up -d`, "
-            "then run uvicorn again."
+            f"Cannot reach PostgreSQL at {target}: {exc}. "
+            "Ensure Postgres is running and POSTGRES_HOST matches how you run the app "
+            "(127.0.0.1 on the host, service name inside Compose)."
         ) from exc
 
     app.state.engine = engine

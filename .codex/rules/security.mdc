@@ -10,3 +10,5 @@ globs: app/**/*.py
 - Compare secrets with constant-time helpers when checking user-provided secret values.
 - Do not return sensitive hashes, tokens, or internal identifiers in public response schemas unless the endpoint explicitly requires them.
 - Keep authentication and authorization checks in dependencies or services, not scattered through unrelated helpers.
+- User admin access must follow shared roles and statuses: `super_admin` can manage everyone, `admin` can manage only regular `user` accounts, and regular `user` has no admin access.
+- Treat `deleted` user status as a soft delete. Do not physically remove users for delete-like flows unless explicitly requested.
