@@ -2,7 +2,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, status
 
-from app.core.pagination import PaginatedResponse, PaginationDep
 from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.modules.auth.deps import (
@@ -23,6 +22,8 @@ from app.modules.auth.schemas import (
     VerifyBody,
     VerifyResponse,
 )
+from app.schemas.pagination import PaginatedResponse, PaginationDep
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _config = get_settings()

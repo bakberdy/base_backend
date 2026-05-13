@@ -1,0 +1,13 @@
+---
+description: Use for exceptions, validation failures, HTTP status codes, API error payloads, logging, rollback, and edge cases.
+globs: app/**/*.py
+---
+
+# Error Handling
+
+- Handle errors and edge cases close to the start of the function that can detect them.
+- Use the existing shared HTTP error factory and error schema for API errors. Do not hand-build `HTTPException.detail` dictionaries or invent local error payload shapes.
+- Use specific HTTP status codes and stable client-facing messages.
+- Preserve structured error details for fields, retry state, blocking state, or presentation hints when the API already has a schema for them.
+- Log unexpected operational failures where they can be diagnosed, but do not log secrets, OTPs, bearer tokens, refresh tokens, password material, or raw authorization headers.
+- Do not swallow exceptions after rollback, cleanup, or logging. Re-raise unless the caller receives an intentional replacement error.

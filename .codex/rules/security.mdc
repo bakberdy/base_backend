@@ -1,0 +1,12 @@
+---
+description: Use for authentication, authorization, tokens, OTP, secrets, sensitive data, input normalization, and credential storage.
+globs: app/**/*.py
+---
+
+# Security
+
+- Normalize and validate external input at the boundary.
+- Store only hashed token, OTP, or credential material when persistence is required.
+- Compare secrets with constant-time helpers when checking user-provided secret values.
+- Do not return sensitive hashes, tokens, or internal identifiers in public response schemas unless the endpoint explicitly requires them.
+- Keep authentication and authorization checks in dependencies or services, not scattered through unrelated helpers.

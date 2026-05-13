@@ -1,0 +1,14 @@
+---
+description: Use for async I/O, database queries, pagination, transactions, locks, caching, startup, shutdown, and race conditions.
+globs: app/**/*.py
+---
+
+# Performance And Reliability
+
+- Minimize blocking I/O. Database and external API work should be async when used from async request paths.
+- Avoid N+1 database queries. Use explicit eager loading, joins, or batched queries for related data.
+- Use the shared pagination contract for list endpoints that can grow; reuse `app.schemas.pagination` instead of creating new pagination models.
+- Make transaction boundaries clear. Commit on successful request-scoped work and rollback on exceptions.
+- Use row locks, advisory locks, unique constraints, or idempotent writes for flows that can race.
+- Add caching only when the data access pattern and invalidation behavior are clear.
+- Prefer lifespan context managers for application startup and shutdown work instead of `@app.on_event`.

@@ -1,0 +1,10 @@
+---
+description: Use to decide whether backend engineering rules apply to a request and to keep rules general instead of feature-specific.
+globs: **/*
+---
+
+# Scope
+
+- These are reusable backend engineering rules, not feature-specific project notes.
+- Apply them to Python/FastAPI code unless a narrower local rule or existing implementation pattern clearly overrides them.
+- Keep changes aligned with the current architecture before introducing new conventions.

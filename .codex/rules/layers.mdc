@@ -1,0 +1,13 @@
+---
+description: Use when work crosses routers, dependencies, schemas, services, repositories, models, or database access boundaries.
+globs: app/**/*.py
+---
+
+# Layers
+
+- Keep routers, dependencies, schemas, services, repositories, and database models in separate modules when the feature has meaningful behavior.
+- Routers own HTTP shape. Services own business decisions and orchestration. Repositories own database queries and persistence details. Schemas own validation and serialization.
+- Shared API schemas belong under `app.schemas`; pagination contracts and helpers must be reused from `app.schemas.pagination`.
+- Do not leak SQLAlchemy models directly as API contracts. Convert models to Pydantic response schemas at the boundary.
+- Keep repository methods explicit about filters, ordering, limits, and locking. Avoid hidden query behavior.
+- Use SQLAlchemy 2 style `select`, `update`, `delete`, typed `Mapped` models, and async sessions.

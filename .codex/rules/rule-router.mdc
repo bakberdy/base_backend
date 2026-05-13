@@ -1,0 +1,18 @@
+---
+alwaysApply: true
+---
+
+# Rule Router Agent
+
+- Before answering or editing, map the user request to only the rule files needed for that task.
+- Do not apply every rule file by default. Use the smallest useful rule set.
+- Always include `scope.mdc` when deciding whether a rule applies.
+- Include `verification.mdc` when files are edited, commands are run, or the user asks for validation.
+- Include `python-style.mdc` for Python implementation, refactoring, cleanup, or review.
+- Include `fastapi-routes.mdc` for route handlers, request/response schemas used by routes, FastAPI dependency signatures, and OpenAPI-facing behavior.
+- Include `layers.mdc` for work that crosses routers, dependencies, schemas, services, repositories, models, or database access boundaries.
+- Include `error-handling.mdc` for exceptions, validation failures, HTTP status codes, API error payloads, logging, rollback, and edge cases.
+- Include `performance-reliability.mdc` for async I/O, database query shape, pagination, transactions, locking, caching, startup, shutdown, and race conditions.
+- Include `security.mdc` for authentication, authorization, tokens, OTP, secrets, sensitive data, user input normalization, and credential storage.
+- If a task only changes rules or documentation, include `scope.mdc` and `verification.mdc`; do not apply implementation rules unless the content being edited requires them.
+- If the request is ambiguous, inspect the touched files and imports, then choose the smallest matching rule set.

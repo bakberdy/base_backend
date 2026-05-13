@@ -1,0 +1,9 @@
+---
+description: Use when files are edited, commands are run, or the user asks for validation.
+globs: **/*
+---
+
+# Verification
+
+- Run the narrowest useful checks after edits: formatter, type checker, tests, or app startup checks depending on what changed.
+- For rule-only edits, verify the rule files are present and readable; do not run unrelated application workflows.

@@ -6,12 +6,6 @@ from uuid import UUID, uuid4
 from fastapi import status
 from jwt import ExpiredSignatureError, PyJWTError
 
-from app.core.pagination import (
-    PaginatedResponse,
-    PaginationParams,
-    build_pagination_meta,
-    pagination_offset,
-)
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -37,6 +31,12 @@ from app.modules.auth.schemas import (
 )
 from app.modules.users.repository import UserRepository
 from app.schemas.error import api_http_exception
+from app.schemas.pagination import (
+    PaginatedResponse,
+    PaginationParams,
+    build_pagination_meta,
+    pagination_offset,
+)
 
 logger = logging.getLogger(__name__)
 
