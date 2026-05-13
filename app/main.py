@@ -33,27 +33,12 @@ def _pg_endpoint_hint(dsn: str) -> str:
     return f"{host}:{port}"
 
 
-def _caused_by_dns_failure(exc: BaseException) -> bool:
-    cur: BaseException | None = exc
-    seen: set[int] = set()
-    while cur is not None and id(cur) not in seen:
-        seen.add(id(cur))
-        if isinstance(cur, socket.gaierror):
-            return True
-        cur = cur.__cause__
-    return False
-
-
-def _pg_hostname(dsn: str) -> str | None:
-    host = urlparse(dsn).hostname
-    return host.lower() if host else None
-
-
-def _connection_refused_hint(hostname: str | None) -> str:
+def _connection_refused_hint(dsn: str) -> str:
+    hostname = urlparse(dsn).hostname
     if hostname in ("127.0.0.1", "localhost", "::1"):
         return (
             "Nothing is listening there yet. From mobile_app_backend run "
-            "`make postgres-up` (or `docker compose up -d postgres`), wait until "
+            "`docker compose up -d postgres`, wait until "
             "the container is healthy, then start uvicorn again."
         )
     return (
@@ -62,9 +47,22 @@ def _connection_refused_hint(hostname: str | None) -> str:
     )
 
 
+def _caused_by_dns_failure(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, socket.gaierror):
+            return True
+        current = current.__cause__
+    return False
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    dsn = settings.database_url
+    target = _pg_endpoint_hint(dsn)
     engine = create_engine(
         settings.database_url_async,
         connect_timeout=settings.database_connect_timeout,
@@ -73,7 +71,6 @@ async def lifespan(app: FastAPI):
         await create_tables(engine)
     except TimeoutError as exc:
         await engine.dispose()
-        target = _pg_endpoint_hint(settings.database_url)
         raise RuntimeError(
             f"Timed out connecting to PostgreSQL at {target} after "
             f"{settings.database_connect_timeout}s. "
@@ -82,21 +79,18 @@ async def lifespan(app: FastAPI):
         ) from exc
     except ConnectionRefusedError as exc:
         await engine.dispose()
-        dsn = settings.database_url
-        target = _pg_endpoint_hint(dsn)
-        hint = _connection_refused_hint(_pg_hostname(dsn))
+        hint = _connection_refused_hint(dsn)
         raise RuntimeError(
             f"Cannot reach PostgreSQL at {target} (connection refused). {hint}"
         ) from exc
     except OSError as exc:
         await engine.dispose()
-        target = _pg_endpoint_hint(settings.database_url)
         if _caused_by_dns_failure(exc):
             raise RuntimeError(
                 f"Could not resolve PostgreSQL host at {target}. "
                 "The hostname `postgres` only works inside Docker's network. "
-                "For local uvicorn use POSTGRES_HOST=127.0.0.1 in config.development.env "
-                "(Compose sets POSTGRES_HOST=postgres for the api service)."
+                "For local uvicorn use POSTGRES_HOST=127.0.0.1; "
+                "inside Docker Compose use POSTGRES_HOST=postgres."
             ) from exc
         raise RuntimeError(
             f"Cannot reach PostgreSQL at {target}: {exc}. "
