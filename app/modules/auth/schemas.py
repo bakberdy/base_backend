@@ -8,7 +8,7 @@ from pydantic import BaseModel, EmailStr, Field
 from app.modules.auth.models import UserSession
 
 
-from app.schemas.error import ErrorDetails
+from app.schemas.error import ErrorDetails, ErrorType
 
 
 class DeviceInfo(BaseModel):
@@ -118,6 +118,10 @@ class RevokeTokenResponse(BaseModel):
 
 
 class AuthErrorDetails(ErrorDetails):
+    type: ErrorType = Field(
+        default=ErrorType.SNACKBAR,
+        description="Type of error to display",
+    )
     attempts_left: int | None = Field(
         default=None,
         description="Remaining number of attempts before temporary block"
@@ -125,5 +129,5 @@ class AuthErrorDetails(ErrorDetails):
 
     blocked_until: str | None = Field(
         default=None,
-        description="Time until the user is blocked"
-)
+        description="Time until the user is blocked",
+    )

@@ -9,10 +9,39 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from pydantic import ValidationError
 
-from app.core.config import get_settings
 from app.schemas.error import ErrorDetails, ErrorResponse, ErrorType, FieldError
 
 logger = logging.getLogger(__name__)
+
+
+def _error_details_from_extra(
+    code: int,
+    raw_details: Any,
+    rest: dict[str, Any],
+) -> ErrorDetails:
+    if isinstance(raw_details, ErrorDetails):
+        return raw_details.model_copy(update={"status_code": code})
+
+    if isinstance(raw_details, dict):
+        merged = {**raw_details, "status_code": raw_details.get("status_code", code)}
+        if merged.get("type") is None:
+            merged["type"] = ErrorType.SNACKBAR.value
+        return ErrorDetails.model_validate(merged)
+
+    if raw_details is not None:
+        return ErrorDetails.model_validate({
+            "status_code": code,
+            "type": ErrorType.BANNER.value,
+            "payload": raw_details,
+        })
+
+    if rest:
+        merged = {"status_code": code, "type": ErrorType.SNACKBAR.value, **rest}
+        if merged.get("type") is None:
+            merged["type"] = ErrorType.SNACKBAR.value
+        return ErrorDetails.model_validate(merged)
+
+    return ErrorDetails(status_code=code, type=ErrorType.SNACKBAR)
 
 
 def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
@@ -23,28 +52,44 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
         try:
             return ErrorResponse.model_validate(detail)
         except ValidationError:
-            message = str(detail.get("message", detail.get("msg", "Request failed")))
+            message = str(detail.get(
+                "message", detail.get("msg", "Request failed")))
+            code = int(detail["code"]) if detail.get(
+                "code") is not None else status
             raw_details = detail.get("details")
-            if raw_details is not None:
-                details_payload: Any = raw_details
-            else:
-                rest = {
-                    k: v
-                    for k, v in detail.items()
-                    if k not in ("message", "msg", "code")
-                }
-                details_payload = rest if rest else None
-            code = int(detail["code"]) if detail.get("code") is not None else status
-            return ErrorResponse(message=message, details=details_payload, code=code)
+            rest = {
+                k: v
+                for k, v in detail.items()
+                if k not in ("message", "msg", "code", "details")
+            }
+            normalized = _error_details_from_extra(code, raw_details, rest)
+            return ErrorResponse(message=message, details=normalized, code=code)
 
     if isinstance(detail, str):
-        return ErrorResponse(message=detail, details=None, code=status)
+        return ErrorResponse(
+            message=detail,
+            details=ErrorDetails(status_code=status, type=ErrorType.SNACKBAR),
+            code=status,
+        )
 
     if isinstance(detail, list):
-        return ErrorResponse(message="Request failed", details=detail, code=status)
+        details = ErrorDetails.model_validate({
+            "status_code": status,
+            "type": ErrorType.INLINE_ERROR.value,
+            "payload": detail,
+        })
+        return ErrorResponse(
+            message="Request failed",
+            details=details,
+            code=status,
+        )
 
-    return ErrorResponse(message="Request failed", details=detail, code=status)
-
+    details = ErrorDetails.model_validate({
+        "status_code": status,
+        "type": ErrorType.SNACKBAR.value,
+        "payload": detail,
+    })
+    return ErrorResponse(message="Request failed", details=details, code=status)
 
 def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
     out: list[FieldError] = []
@@ -63,7 +108,7 @@ def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
 async def http_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, StarletteHTTPException)
     body = _http_exception_payload(exc)
-    return JSONResponse(status_code=exc.status_code, content=body.model_dump())
+    return JSONResponse(status_code=exc.status_code, content=body.model_dump(mode="json"))
 
 
 async def validation_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
@@ -73,25 +118,24 @@ async def validation_exception_handler(_request: Request, exc: Exception) -> JSO
         type=ErrorType.INLINE_ERROR,
         field_errors=_validation_field_errors(exc.errors()),
     )
-    body = ErrorResponse(message="Validation failed", code=422, details=details)
+    body = ErrorResponse(message="Validation failed",
+                         code=422, details=details)
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
 
-async def unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
     logger.exception("Unhandled server error")
-    settings = get_settings()
-    details = None
-    if settings.app_env == "development":
-        details = {"type": type(exc).__name__, "detail": str(exc)}
     body = ErrorResponse(
         message="Service is unavailable right now, try it later",
-        details=details,
+        details=ErrorDetails(
+            status_code=500, type=ErrorType.ALERT),
         code=500,
     )
-    return JSONResponse(status_code=500, content=body.model_dump())
+    return JSONResponse(status_code=500, content=body.model_dump(mode="json"))
 
 
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(RequestValidationError,
+                              validation_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

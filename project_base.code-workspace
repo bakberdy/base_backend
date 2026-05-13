@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "path": ".."
+        },
+        {
+            "path": "."
+        },
+        {
+            "path": "../mobile_app"
+        }
+    ],
+    "settings": {
+        "python.analysis.extraPaths": [
+            "${workspaceFolder:mobile_app_backend}"
+        ],
+        "mypy-type-checker.cwd": "${workspaceFolder:mobile_app_backend}"
+    }
+}

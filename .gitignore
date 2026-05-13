@@ -20,6 +20,7 @@ ENV/
 *.env.*
 !.env.example
 !env.example
+!config/run/config.*.env
 *.pem
 *.key
 *.crt
@@ -116,3 +117,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+
+/config/run/config.*.env
+!/config/run/config.example.env

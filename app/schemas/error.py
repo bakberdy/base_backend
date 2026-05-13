@@ -23,7 +23,7 @@ class ErrorDetails(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     type: ErrorType = Field(
-        default=ErrorType.SNACKBAR,
+        ...,
         description="Type of error to display",
     )
     field_errors: list[FieldError] | None = Field(
@@ -36,9 +36,9 @@ class ErrorDetails(BaseModel):
 class ErrorResponse(BaseModel):
     message: str
     code: int = Field(..., description="HTTP status code")
-    details: ErrorDetails | list[Any] | dict[str, Any] | None = Field(
-        default=None,
-        description="Extra context (validation errors, nested info, etc.)",
+    details: ErrorDetails = Field(
+        ...,
+        description="Structured error context (must include type)",
     )
 
 
