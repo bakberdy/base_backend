@@ -4,6 +4,8 @@ from typing import Any
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.i18n import _
+
 
 class ErrorType(Enum):
     SNACKBAR = "snackbar"
@@ -63,7 +65,7 @@ def api_http_exception(
         if field_errors is not None:
             patch["field_errors"] = field_errors
         resolved = details.model_copy(update=patch)
-    body = ErrorResponse(message=message, code=status_code, details=resolved)
+    body = ErrorResponse(message=_(message), code=status_code, details=resolved)
     return HTTPException(
         status_code=status_code,
         detail=body.model_dump(mode="json"),

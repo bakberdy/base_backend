@@ -49,7 +49,7 @@ async def _decode_access_payload(
     if creds is None or not creds.credentials:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Missing authorization",
+            "missing_authorization",
         )
     settings = get_settings()
     try:
@@ -57,12 +57,12 @@ async def _decode_access_payload(
     except ExpiredSignatureError:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Token expired",
+            "token_expired",
         ) from None
     except PyJWTError:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         ) from None
 
 
@@ -73,37 +73,37 @@ async def get_validated_access_payload(
     if payload.get("typ") != "access":
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         )
     user_id = UUID(str(payload["sub"]))
     sid = payload.get("sid")
     if not isinstance(sid, str):
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         )
     try:
         session_id = UUID(sid)
     except ValueError as exc:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         ) from exc
     row = await auth_repo.get_session(session_id)
     if row is None:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Session not found",
+            "session_not_found",
         )
     if row.revoked_at is not None:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Session revoked",
+            "session_revoked",
         )
     if row.user_id != user_id:
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         )
     return payload
 
@@ -121,7 +121,7 @@ async def get_current_session_id(
     if not isinstance(sid, str):
         raise api_http_exception(
             status.HTTP_401_UNAUTHORIZED,
-            "Invalid token",
+            "invalid_token",
         )
     return UUID(sid)
 

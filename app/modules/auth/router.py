@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Query, Request, status
 
 from app.core.config import get_settings
+from app.core.i18n import _
 from app.core.limiter import limiter
 from app.modules.auth.deps import (
     AuthServiceDep,
@@ -75,7 +76,7 @@ async def auth_delete_session(
     svc: AuthServiceDep,
 ) -> RevokeTokenResponse:
     await svc.revoke_session_by_session_id(user_id, session_id)
-    return RevokeTokenResponse(message="session deleted")
+    return RevokeTokenResponse(message=_("session_deleted"))
 
 
 @router.patch("/device/notifications", response_model=DeviceNotificationsResponse)

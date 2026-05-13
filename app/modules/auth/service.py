@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from fastapi import status
 from jwt import ExpiredSignatureError, PyJWTError
 
+from app.core.i18n import _
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -88,7 +89,7 @@ class AuthService:
         logger.debug("otp code=%s", code)
 
         return LoginResponse(
-            message="OTP sent to email",
+            message=_("otp_sent_to_email"),
             login_request_id=req_id,
             otp_expires_in=self._otp_ttl,
         )
@@ -99,15 +100,15 @@ class AuthService:
         lr = await self._auth.get_login_request(login_request_id)
         if lr is None:
             raise api_http_exception(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                message="Invalid login request",
+                status.HTTP_400_BAD_REQUEST,
+                "invalid_login_request",
             )
 
         user = await self._users.get_by_id(lr.user_id)
         if user is None or user.email != normalized:
             raise api_http_exception(
                 status.HTTP_400_BAD_REQUEST,
-                "Invalid credentials",
+                "invalid_credentials",
                 details=AuthErrorDetails(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     attempts_left=lr.attempts_left,
@@ -117,7 +118,7 @@ class AuthService:
         if lr.consumed_at is not None:
             raise api_http_exception(
                 status.HTTP_410_GONE,
-                "Login request already used",
+                "login_request_already_used",
                 details=AuthErrorDetails(
                     status_code=status.HTTP_410_GONE,
                     attempts_left=lr.attempts_left,
@@ -127,13 +128,13 @@ class AuthService:
         if lr.expires_at < now:
             raise api_http_exception(
                 status.HTTP_410_GONE,
-                "OTP expired",
+                "otp_expired",
             )
 
         if lr.attempts_left <= 0:
             raise api_http_exception(
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                "Too many attempts",
+                "too_many_attempts",
             )
 
         otp_ok = False
@@ -147,11 +148,11 @@ class AuthService:
             if new_left <= 0:
                 raise api_http_exception(
                     status.HTTP_429_TOO_MANY_REQUESTS,
-                    "Too many attempts",
+                    "too_many_attempts",
                 )
             raise api_http_exception(
                 status.HTTP_400_BAD_REQUEST,
-                "Invalid OTP",
+                "invalid_otp",
                 details=AuthErrorDetails(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     attempts_left=new_left,
@@ -202,12 +203,12 @@ class AuthService:
         except ExpiredSignatureError:
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Token expired",
+                "token_expired",
             ) from None
         except PyJWTError:
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid token",
+                "invalid_token",
             ) from None
         return payload
 
@@ -224,7 +225,7 @@ class AuthService:
         if payload.get("typ") != "refresh":
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid token",
+                "invalid_token",
             )
         user_id = UUID(str(payload["sub"]))
         session_id = UUID(str(payload["jti"]))
@@ -237,28 +238,28 @@ class AuthService:
             await self._maybe_revoke_all_on_reuse(payload, user_id)
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid refresh token",
+                "invalid_refresh_token",
             )
 
         if row.user_id != user_id:
             await self._auth.revoke_all_active_for_user(user_id, now)
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid refresh token",
+                "invalid_refresh_token",
             )
 
         if row.expires_at < now:
             await self._auth.revoke_session_by_id(session_id, now)
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Token expired",
+                "token_expired",
             ) from None
 
         if not verify_refresh_hash(refresh_token, row.refresh_token_hash):
             await self._auth.revoke_all_active_for_user(user_id=row.user_id, revoked_at=now)
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "Invalid refresh token",
+                "invalid_refresh_token",
             ) from None
 
         await self._auth.revoke_session_by_id(session_id, now)
@@ -303,16 +304,16 @@ class AuthService:
             if row is None:
                 raise api_http_exception(
                     status.HTTP_404_NOT_FOUND,
-                    "Session not found",
+                    "session_not_found",
                 )
             if row.user_id != user_id:
                 raise api_http_exception(
                     status.HTTP_403_FORBIDDEN,
-                    "Forbidden",
+                    "forbidden",
                 )
             raise api_http_exception(
                 status.HTTP_410_GONE,
-                "Session already revoked",
+                "session_already_revoked",
             )
 
     async def list_sessions_for_user(
@@ -345,16 +346,16 @@ class AuthService:
         if row is None:
             raise api_http_exception(
                 status.HTTP_404_NOT_FOUND,
-                "Session not found",
+                "session_not_found",
             )
         if row.user_id != user_id:
             raise api_http_exception(
                 status.HTTP_403_FORBIDDEN,
-                "Forbidden",
+                "forbidden",
             )
         if row.revoked_at is None:
             await self._auth.revoke_session_by_id(session_id, now)
-        return LogoutResponse(message="logged out")
+        return LogoutResponse(message=_("logged_out"))
 
     async def update_device_notifications(
         self,
@@ -369,17 +370,17 @@ class AuthService:
         if row is None:
             raise api_http_exception(
                 status.HTTP_404_NOT_FOUND,
-                "Session not found",
+                "session_not_found",
             )
         if row.user_id != user_id:
             raise api_http_exception(
                 status.HTTP_403_FORBIDDEN,
-                "Forbidden",
+                "forbidden",
             )
         if row.revoked_at is not None:
             raise api_http_exception(
                 status.HTTP_410_GONE,
-                "Session revoked",
+                "session_revoked",
             )
         await self._auth.update_user_device_notifications(
             user_device_id=row.user_device_id,
@@ -391,4 +392,4 @@ class AuthService:
 
     async def delete_all_sessions(self, user_id: UUID) -> RevokeTokenResponse:
         await self._auth.revoke_all_active_for_user(user_id, datetime.now(UTC))
-        return RevokeTokenResponse(message="all sessions deleted")
+        return RevokeTokenResponse(message=_("all_sessions_deleted"))

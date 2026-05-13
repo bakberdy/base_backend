@@ -1,0 +1,119 @@
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-05-13 16:16+0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.16.0\n"
+
+#: app/api/error_handlers.py:57 app/api/error_handlers.py:83
+#: app/api/error_handlers.py:93
+msgid "request_failed"
+msgstr ""
+
+#: app/api/error_handlers.py:123
+msgid "validation_failed"
+msgstr ""
+
+#: app/api/error_handlers.py:131
+msgid "service_unavailable_try_later"
+msgstr ""
+
+#: app/modules/auth/deps.py:50
+msgid "missing_authorization"
+msgstr ""
+
+#: app/modules/auth/deps.py:58 app/modules/auth/service.py:204
+#: app/modules/auth/service.py:253
+msgid "token_expired"
+msgstr ""
+
+#: app/modules/auth/deps.py:63 app/modules/auth/deps.py:74
+#: app/modules/auth/deps.py:81 app/modules/auth/deps.py:88
+#: app/modules/auth/deps.py:104 app/modules/auth/deps.py:122
+#: app/modules/auth/service.py:209 app/modules/auth/service.py:226
+msgid "invalid_token"
+msgstr ""
+
+#: app/modules/auth/deps.py:94 app/modules/auth/service.py:305
+#: app/modules/auth/service.py:347 app/modules/auth/service.py:371
+msgid "session_not_found"
+msgstr ""
+
+#: app/modules/auth/deps.py:99 app/modules/auth/service.py:381
+msgid "session_revoked"
+msgstr ""
+
+#: app/modules/auth/router.py:79
+msgid "session_deleted"
+msgstr ""
+
+#: app/modules/auth/service.py:92
+msgid "otp_sent_to_email"
+msgstr ""
+
+#: app/modules/auth/service.py:102
+msgid "invalid_login_request"
+msgstr ""
+
+#: app/modules/auth/service.py:112
+msgid "invalid_credentials"
+msgstr ""
+
+#: app/modules/auth/service.py:122
+msgid "login_request_already_used"
+msgstr ""
+
+#: app/modules/auth/service.py:129
+msgid "otp_expired"
+msgstr ""
+
+#: app/modules/auth/service.py:135 app/modules/auth/service.py:149
+msgid "too_many_attempts"
+msgstr ""
+
+#: app/modules/auth/service.py:156
+msgid "invalid_otp"
+msgstr ""
+
+#: app/modules/auth/service.py:239 app/modules/auth/service.py:246
+#: app/modules/auth/service.py:260
+msgid "invalid_refresh_token"
+msgstr ""
+
+#: app/modules/auth/service.py:310 app/modules/auth/service.py:352
+#: app/modules/auth/service.py:376 app/modules/users/service.py:29
+#: app/modules/users/service.py:34 app/modules/users/service.py:54
+#: app/modules/users/service.py:91
+msgid "forbidden"
+msgstr ""
+
+#: app/modules/auth/service.py:314
+msgid "session_already_revoked"
+msgstr ""
+
+#: app/modules/auth/service.py:358
+msgid "logged_out"
+msgstr ""
+
+#: app/modules/auth/service.py:395
+msgid "all_sessions_deleted"
+msgstr ""
+
+#: app/modules/users/router.py:27 app/modules/users/service.py:24
+#: app/modules/users/service.py:43 app/modules/users/service.py:98
+#: app/modules/users/service.py:110
+msgid "user_not_found"
+msgstr ""
+

@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from pydantic import ValidationError
 
+from app.core.i18n import _
 from app.schemas.error import ErrorDetails, ErrorResponse, ErrorType, FieldError
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
             return ErrorResponse.model_validate(detail)
         except ValidationError:
             message = str(detail.get(
-                "message", detail.get("msg", "Request failed")))
+                "message", detail.get("msg", _("request_failed"))))
             code = int(detail["code"]) if detail.get(
                 "code") is not None else status
             raw_details = detail.get("details")
@@ -63,11 +64,11 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
                 if k not in ("message", "msg", "code", "details")
             }
             normalized = _error_details_from_extra(code, raw_details, rest)
-            return ErrorResponse(message=message, details=normalized, code=code)
+            return ErrorResponse(message=_(message), details=normalized, code=code)
 
     if isinstance(detail, str):
         return ErrorResponse(
-            message=detail,
+            message=_(detail),
             details=ErrorDetails(status_code=status, type=ErrorType.SNACKBAR),
             code=status,
         )
@@ -79,7 +80,7 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
             "payload": detail,
         })
         return ErrorResponse(
-            message="Request failed",
+            message=_("request_failed"),
             details=details,
             code=status,
         )
@@ -89,7 +90,8 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
         "type": ErrorType.SNACKBAR.value,
         "payload": detail,
     })
-    return ErrorResponse(message="Request failed", details=details, code=status)
+    return ErrorResponse(message=_("request_failed"), details=details, code=status)
+
 
 def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
     out: list[FieldError] = []
@@ -101,7 +103,7 @@ def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
         parts = [str(p) for p in loc if p != "body"]
         field_name = ".".join(parts) if parts else "request"
         msg = err.get("msg") or "Invalid value"
-        out.append(FieldError(field_name=field_name, message=msg))
+        out.append(FieldError(field_name=field_name, message=_(str(msg))))
     return out
 
 
@@ -118,7 +120,7 @@ async def validation_exception_handler(_request: Request, exc: Exception) -> JSO
         type=ErrorType.INLINE_ERROR,
         field_errors=_validation_field_errors(exc.errors()),
     )
-    body = ErrorResponse(message="Validation failed",
+    body = ErrorResponse(message=_("validation_failed"),
                          code=422, details=details)
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
@@ -126,7 +128,7 @@ async def validation_exception_handler(_request: Request, exc: Exception) -> JSO
 async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
     logger.exception("Unhandled server error")
     body = ErrorResponse(
-        message="Service is unavailable right now, try it later",
+        message=_("service_unavailable_try_later"),
         details=ErrorDetails(
             status_code=500, type=ErrorType.ALERT),
         code=500,

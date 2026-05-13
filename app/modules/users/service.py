@@ -23,17 +23,17 @@ class UserService:
         if actor is None:
             raise api_http_exception(
                 status.HTTP_401_UNAUTHORIZED,
-                "User not found",
+                "user_not_found",
             )
         if actor.status != UserStatus.ACTIVE.value:
             raise api_http_exception(
                 status.HTTP_403_FORBIDDEN,
-                "Forbidden",
+                "forbidden",
             )
         if actor.role not in (UserRole.SUPER_ADMIN.value, UserRole.ADMIN.value):
             raise api_http_exception(
                 status.HTTP_403_FORBIDDEN,
-                "Forbidden",
+                "forbidden",
             )
         return actor
 
@@ -42,7 +42,7 @@ class UserService:
         if target is None:
             raise api_http_exception(
                 status.HTTP_404_NOT_FOUND,
-                "User not found",
+                "user_not_found",
             )
         return target
 
@@ -53,7 +53,7 @@ class UserService:
             return
         raise api_http_exception(
             status.HTTP_403_FORBIDDEN,
-            "Forbidden",
+            "forbidden",
         )
 
     async def list_users(
@@ -90,14 +90,14 @@ class UserService:
         if actor.role != UserRole.SUPER_ADMIN.value:
             raise api_http_exception(
                 status.HTTP_403_FORBIDDEN,
-                "Forbidden",
+                "forbidden",
             )
         target = await self._get_target(user_id)
         updated = await self._users.update_role(target.id, role)
         if updated is None:
             raise api_http_exception(
                 status.HTTP_404_NOT_FOUND,
-                "User not found",
+                "user_not_found",
             )
         return UserOut.model_validate(updated)
 
@@ -109,6 +109,6 @@ class UserService:
         if updated is None:
             raise api_http_exception(
                 status.HTTP_404_NOT_FOUND,
-                "User not found",
+                "user_not_found",
             )
         return UserOut.model_validate(updated)

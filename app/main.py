@@ -11,6 +11,7 @@ from starlette.types import HTTPExceptionHandler
 
 from app.api.error_handlers import register_exception_handlers
 from app.core.config import get_settings
+from app.core.i18n import locale_from_request, reset_locale, set_locale
 from app.core.limiter import limiter
 from app.db.session import create_engine, create_session_maker, create_tables
 from app.modules.auth import router as auth_router
@@ -112,6 +113,15 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     application.state.limiter = limiter
+
+    @application.middleware("http")
+    async def locale_middleware(request: Request, call_next):
+        token = set_locale(locale_from_request(request))
+        try:
+            return await call_next(request)
+        finally:
+            reset_locale(token)
+
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     register_exception_handlers(application)
     application.include_router(auth_router)

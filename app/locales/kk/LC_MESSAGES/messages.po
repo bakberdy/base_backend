@@ -1,0 +1,82 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: mobile_app_backend 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-13 00:00+0000\n"
+"PO-Revision-Date: 2026-05-13 00:00+0000\n"
+"Last-Translator: \n"
+"Language: kk\n"
+"Language-Team: kk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel\n"
+
+msgid "request_failed"
+msgstr "Сұрау орындалмады"
+
+msgid "invalid_value"
+msgstr "Жарамсыз мән"
+
+msgid "validation_failed"
+msgstr "Валидация қатесі"
+
+msgid "service_unavailable_try_later"
+msgstr "Қызмет қазір қолжетімсіз, кейінірек қайталап көріңіз"
+
+msgid "otp_sent_to_email"
+msgstr "OTP коды email-ге жіберілді"
+
+msgid "invalid_login_request"
+msgstr "Кіру сұрауы жарамсыз"
+
+msgid "invalid_credentials"
+msgstr "Кіру деректері қате"
+
+msgid "login_request_already_used"
+msgstr "Кіру сұрауы бұрын қолданылған"
+
+msgid "otp_expired"
+msgstr "OTP кодының мерзімі аяқталды"
+
+msgid "too_many_attempts"
+msgstr "Әрекет саны тым көп"
+
+msgid "invalid_otp"
+msgstr "OTP коды қате"
+
+msgid "token_expired"
+msgstr "Токен мерзімі аяқталды"
+
+msgid "invalid_token"
+msgstr "Токен жарамсыз"
+
+msgid "invalid_refresh_token"
+msgstr "Refresh токен жарамсыз"
+
+msgid "session_not_found"
+msgstr "Сессия табылмады"
+
+msgid "forbidden"
+msgstr "Рұқсат жоқ"
+
+msgid "session_already_revoked"
+msgstr "Сессия бұрын қайтарылған"
+
+msgid "session_deleted"
+msgstr "сессия жойылды"
+
+msgid "logged_out"
+msgstr "жүйеден шықты"
+
+msgid "session_revoked"
+msgstr "Сессия қайтарылды"
+
+msgid "all_sessions_deleted"
+msgstr "барлық сессиялар жойылды"
+
+msgid "missing_authorization"
+msgstr "Авторизация жоқ"
+
+msgid "user_not_found"
+msgstr "Пайдаланушы табылмады"

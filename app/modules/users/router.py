@@ -26,7 +26,7 @@ async def users_me(user_id: CurrentUserIdDep, repo: UserRepositoryDep) -> UserOu
     if user is None:
         raise api_http_exception(
             status.HTTP_404_NOT_FOUND,
-            "User not found",
+            "user_not_found",
         )
     return UserOut.model_validate(user)
 
