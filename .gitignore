@@ -1,58 +1,118 @@
-# Byte-compiled / optimized
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.python-version
 
 # Virtual environments
 .venv/
 venv/
 env/
+ENV/
 .env/
 .ENV/
 
-# Environment and secrets (keep .env.example in repo if you use one)
+# Environment variables and secrets
 .env
-.env.local
-.env.*.local
+.env.*
+*.env
+*.env.*
+!.env.example
+!env.example
 *.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-.eggs/
-*.egg
+# Local application data
+*.log
+logs/
+*.pid
+*.seed
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+staticfiles/
+media/
+uploads/
 
-# Testing & coverage
+# Test, coverage, and reports
 .pytest_cache/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
+junit.xml
+test-results/
+.hypothesis/
 .tox/
 .nox/
-coverage.xml
-*.cover
-.hypothesis/
 
-# Type checkers / linters
+# Type checkers, linters, and formatters
 .mypy_cache/
+.pyre/
+.pytype/
 .ruff_cache/
 .dmypy.json
 dmypy.json
+.cache/
 
-# IDE / editors
+# Build and packaging
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-wheel-metadata/
+
+# Dependency and tool caches
+.pip-cache/
+.uv-cache/
+.poetry-cache/
+
+# Docker and compose local overrides
+docker-compose.override.yml
+compose.override.yml
+.docker/
+
+# IDEs and editors
 .idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 *.swp
 *.swo
 *~
 
-# OS
+# OS files
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Logs & local data
-*.log
-logs/
-*.sqlite3
-*.db
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
