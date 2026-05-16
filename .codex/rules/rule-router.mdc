@@ -24,5 +24,6 @@ alwaysApply: true
 - Include `performance-reliability.mdc` for async I/O, database query shape, pagination, transactions, locking, caching, startup, shutdown, and race conditions.
 - Include `security.mdc` for authentication, authorization, tokens, OTP, secrets, sensitive data, user input normalization, and credential storage.
 - Include `localization.mdc` for user-facing API messages, errors, response text, validation text, locale negotiation, and translation catalogs.
+- Include `unit-testing.mdc` for unit test scope, test prioritization, or deciding whether code should have unit coverage.
 - If a task only changes rules or documentation, include `scope.mdc` and `verification.mdc`; do not apply implementation rules unless the content being edited requires them.
 - If the request is ambiguous, inspect the touched files and imports, then choose the smallest matching rule set.

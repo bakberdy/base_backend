@@ -23,4 +23,5 @@ globs: app/**/*.py,tests/**/*.py
 - Request schemas must end with `Request`. Response schemas must end with `Response`.
 - API tests must validate status codes, response bodies, headers, permissions, and rate limits.
 - Application tests must validate workflows. Domain tests must validate pure business rules. Infrastructure tests must validate database and integration behavior.
+- Follow `unit-testing.mdc` when deciding unit-test scope and priority.
 - Prioritize maintainability, scalability, explicit responsibility boundaries, low coupling, predictable structure, and testability over shortcut implementations.

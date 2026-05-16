@@ -1,0 +1,61 @@
+---
+description: Use when creating, reviewing, or deciding scope for unit tests.
+globs: app/**/*.py,tests/**/*.py
+---
+
+# Unit Testing
+
+- Unit tests should mainly target:
+  - use cases
+  - domain business rules
+  - auth and security logic
+  - permission logic
+  - token logic
+  - rate limit logic
+  - state transition logic
+  - complex transformation or mapping logic
+
+- Use case tests should cover:
+  - invalid state transitions
+  - permission violations
+  - duplicate entity scenarios
+  - token rotation and reuse
+  - rollback scenarios
+  - multi-step workflow behavior
+
+- Domain tests should cover:
+  - invariants
+  - role restrictions
+  - entity state rules
+  - business constraints
+
+- Security tests should cover:
+  - refresh token reuse prevention
+  - role escalation prevention
+  - invalid or revoked token handling
+  - access boundary checks
+  - rate limit edge cases
+
+- Service tests should mainly target:
+  - token generation and verification
+  - password verification
+  - retry logic
+  - cache logic
+  - payload transformation
+  - provider response normalization
+
+- Mapper tests are needed only when mapping contains:
+  - nested transformations
+  - enum conversion
+  - fallback logic
+  - partial payload handling
+  - external API normalization
+
+- Repositories are usually better covered with integration tests instead of unit tests.
+- Thin routers, DTOs, simple schemas, constants, enums, and plain ORM models usually do not need unit tests.
+- Prioritize unit tests in this order:
+  - auth and security
+  - business rules
+  - workflow orchestration
+  - state-changing logic
+  - complex transformations
