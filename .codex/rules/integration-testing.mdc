@@ -1,0 +1,124 @@
+---
+description: Use when creating, reviewing, or deciding scope for integration tests.
+globs: app/**/*.py,tests/**/*.py,docker-compose.yml,Makefile,.github/**/*.yml
+---
+
+# Integration Testing
+
+- Integration tests must validate interaction between multiple real components.
+- Integration tests must verify that components work together correctly, not just in isolation.
+- Integration tests should primarily target:
+  - repositories
+  - database queries
+  - transactions
+  - API endpoints
+  - middleware
+  - dependency injection wiring
+  - auth flows
+  - permission boundaries
+  - infrastructure integrations
+
+- Classify integration tests by the boundary they verify:
+  - repository integration tests
+  - API integration tests
+  - auth flow integration tests
+  - infrastructure integration tests
+  - middleware integration tests
+
+- Integration tests should live under module-owned test folders:
+  - `tests/<module>/integration/`
+  - or `tests/<module>/<layer>/integration/` when layer ownership is clearer.
+
+- Integration test filenames should include `_integration` when unit and integration tests could be confused.
+
+- Integration tests must use:
+  - real database
+  - real ORM
+  - real migrations
+  - real dependency graph
+
+- Integration tests must not mock repositories, ORM models, database sessions, use cases under test, or internal services being integrated.
+
+- Integration tests may use:
+  - real Redis
+  - real cache layer
+  - real message broker
+  - sandbox external providers
+
+- Integration tests should mock or fake:
+  - payment execution
+  - email delivery
+  - SMS delivery
+  - external AI requests
+  - third-party production services
+
+- Fake only side effects outside the system boundary. Do not fake internal persistence or internal workflow coordination in integration tests.
+
+- Repository integration tests should verify:
+  - filtering
+  - pagination
+  - sorting
+  - joins
+  - relation loading
+  - transaction rollback
+  - uniqueness constraints
+  - soft delete behavior
+
+- API integration tests should verify:
+  - request validation
+  - authentication
+  - authorization
+  - middleware behavior
+  - response structure
+  - error responses
+  - localization
+  - rate limiting
+  - serialization and deserialization
+
+- Auth integration tests should verify:
+  - login flow
+  - refresh flow
+  - token revocation
+  - session persistence
+  - refresh token rotation
+  - protected endpoint access
+
+- Integration tests must validate transaction behavior for multi-step workflows.
+- Integration tests must verify real persistence behavior instead of mocked repository behavior.
+- Integration tests must validate interaction between use cases, repositories, services, and infrastructure implementations.
+- Integration tests should run in isolated test environments.
+- Integration tests should use dedicated test databases.
+- Integration tests should reset state between test runs.
+- Each integration test must run with isolated database state.
+- Integration tests should clean tables before or after each test, or use transaction rollback fixtures.
+- Integration tests must not depend on test execution order.
+- Integration tests should create required data through factories, builders, fixtures, or helper functions.
+- Integration tests must avoid hard-coded shared mutable records.
+- Integration tests should be executable in CI/CD pipelines.
+- Integration tests should be runnable in GitHub Actions using service containers.
+- Integration tests must be runnable through a Makefile command such as `make test-integration`.
+- CI configuration must use the same integration test command that developers use locally.
+- GitHub Actions integration tests should use service containers for databases and other real infrastructure dependencies.
+- Integration tests must initialize schema using the same migration path used by deployments.
+- Integration tests must fail if migrations cannot build the database from an empty state.
+- Integration tests should be fewer than unit tests and focused on critical paths.
+- Do not duplicate every unit test scenario at integration level.
+- Integration tests must prioritize:
+  - auth and security flows
+  - transaction-heavy workflows
+  - database integrity
+  - permission boundaries
+  - critical API contracts
+  - infrastructure reliability
+
+- For this backend, prioritize integration tests in this order:
+  - auth login -> verify -> access protected endpoint
+  - refresh token rotation
+  - revoked token cannot access protected endpoint
+  - users permission boundaries
+  - repository pagination, filtering, and sorting
+  - localization through `Accept-Language`
+  - rate limiting on auth endpoints
+
+- Integration tests should not attempt to fully test third-party providers themselves.
+- Integration tests should focus on verifying correct integration boundaries and behavior.
