@@ -1,16 +1,16 @@
 ---
 description: Use for FastAPI route handlers, route dependencies, request bodies, response schemas, and OpenAPI-facing behavior.
-globs: app/**/router.py,app/**/routers.py,app/**/schemas.py,app/openapi.py
+globs: app/modules/*/api/router.py,app/modules/*/api/schemas.py,app/modules/*/api/dependencies.py,app/openapi.py
 ---
 
 # FastAPI Routes
 
-- Route handlers should be thin. They should parse request data, receive dependencies, call the appropriate service or repository, and return a declared response model.
+- Route handlers should be thin. They should parse request data, receive dependencies, call the appropriate use case or application service, and return a declared response model.
 - Use Pydantic models for request bodies and response schemas. Avoid raw dict payloads for public API input and output.
-- Use `app.schemas.pagination.PaginatedResponse` and `PaginationDep` for every paginated endpoint. Do not create endpoint-local pagination response models or dependency shapes.
+- Use shared pagination contracts from `app/common/pagination`. Do not create endpoint-local pagination response models or dependency shapes.
 - Declare `response_model` and return type annotations for routes.
 - Use `async def` for route handlers and any function that performs database, network, or other async I/O.
 - Keep blocking work out of route handlers. Move heavy CPU work, synchronous I/O, and external calls behind dedicated services or async adapters.
-- Prefer FastAPI dependency injection for shared resources such as database sessions, repositories, services, authentication context, settings, and request-scoped values.
+- Prefer FastAPI dependency injection for use cases, application services, authentication context, settings, and request-scoped values.
 - Prefer `Annotated[..., Depends(...)]`, `Annotated[..., Query(...)]`, and dependency aliases when they improve readability.
 - Use named dependency aliases for repeated authenticated context values or service dependencies.

@@ -11,6 +11,15 @@ alwaysApply: true
 - Include `python-style.mdc` for Python implementation, refactoring, cleanup, or review.
 - Include `fastapi-routes.mdc` for route handlers, request/response schemas used by routes, FastAPI dependency signatures, and OpenAPI-facing behavior.
 - Include `layers.mdc` for work that crosses routers, dependencies, schemas, services, repositories, models, or database access boundaries.
+- Include `architecture-structure.mdc` for directory layout, file placement, module structure, migrations, and tests.
+- Include `architecture-api.mdc` for API layer work: routers, HTTP parsing, status codes, API schemas, and response mapping.
+- Include `architecture-application.mdc` for workflow orchestration, transaction boundaries, application services, and use-case dependencies.
+- Include `architecture-domain.mdc` for entities, value objects, enums, domain exceptions, and repository/service contracts.
+- Include `architecture-infrastructure.mdc` for concrete adapters, ORM models, database setup, Redis/JWT/SMTP/storage clients, and external SDK implementations.
+- Include `architecture-repository.mdc` for persistence queries, repository interfaces, repository implementations, and ORM access.
+- Include `architecture-service.mdc` for focused token, hasher, email, notification, file, payment, AI, provider, or external client capabilities.
+- Include `architecture-use-case.mdc` for complete business scenarios that coordinate repositories, services, rules, operation order, and transactions.
+- Include `architecture-coordination.mdc` for dependency direction, module isolation, common/core placement, localization boundaries, unified errors, naming, and test layer separation.
 - Include `error-handling.mdc` for exceptions, validation failures, HTTP status codes, API error payloads, logging, rollback, and edge cases.
 - Include `performance-reliability.mdc` for async I/O, database query shape, pagination, transactions, locking, caching, startup, shutdown, and race conditions.
 - Include `security.mdc` for authentication, authorization, tokens, OTP, secrets, sensitive data, user input normalization, and credential storage.

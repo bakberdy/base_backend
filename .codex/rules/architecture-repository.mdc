@@ -1,0 +1,17 @@
+---
+description: Use for repository interfaces and repository implementations that read, write, update, delete, or query persisted data.
+globs: app/modules/*/domain/repositories.py,app/modules/*/infrastructure/sqlalchemy_repositories.py
+---
+
+# Architecture: Repository Layer
+
+- Repositories must handle only persistence logic: read data, save data, update data, delete data, and query data.
+- Repository interfaces must live in `app/modules/<module>/domain/repositories.py`.
+- SQLAlchemy repository implementations must live in `app/modules/<module>/infrastructure/sqlalchemy_repositories.py`.
+- Repositories must encapsulate ORM and database access.
+- Repository interfaces must end with `Repository`.
+- Repository implementations must include their implementation type in the class name.
+- Repository methods must remain storage-focused and explicit about filters, ordering, limits, locking, and write behavior.
+- Do not generate JWTs, hash passwords, send emails, call external integrations, localize messages, manage workflows, or coordinate scenarios in repositories.
+- Do not enforce business rules unrelated to persistence in repositories.
+- Do not automatically commit transactions unless the use case explicitly requires it. Transaction boundaries belong to the use case layer.

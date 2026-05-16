@@ -1,0 +1,18 @@
+---
+description: Use for infrastructure adapters, database models, external providers, Redis/JWT/SMTP/storage clients, and concrete contract implementations.
+globs: app/modules/*/infrastructure/**/*.py,app/core/database.py,app/migrations/**/*.py
+---
+
+# Architecture: Infrastructure Layer
+
+- The infrastructure layer must contain technical implementations only.
+- Module infrastructure code must live under `app/modules/<module>/infrastructure`.
+- SQLAlchemy models must live in `sqlalchemy_models.py`.
+- SQLAlchemy repository implementations must live in `sqlalchemy_repositories.py`.
+- Infrastructure code must implement contracts defined by the domain or application boundary.
+- Infrastructure code may use SQLAlchemy, Redis, JWT libraries, SMTP providers, external APIs, storage providers, and other technical SDKs.
+- ORM models must end with `Model`.
+- Concrete repository implementations must include their implementation type in the name, such as `SqlAlchemyUserRepository`.
+- Do not put business workflows, permission rules, full scenario coordination, or use-case operation ordering in infrastructure code.
+- Do not make infrastructure implementations the source of domain contracts. Define the contract inward, then implement it outward.
+- Do not expose infrastructure models or SDK DTOs directly to the API or domain layers.

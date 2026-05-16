@@ -1,17 +1,18 @@
 ---
 description: Use for user-facing API messages, errors, response text, validation text, OpenAPI text, and locale-aware behavior.
-globs: app/**/*.py,app/locales/**/*.po,babel.cfg,pyproject.toml,requirements.txt
+globs: app/**/*.py,app/common/localization/**/*.json
 ---
 
 # Localization
 
 - Support `en`, `kk`, and `ru` for user-facing API text.
-- Use `app.core.i18n._` for every user-facing error message and response message returned to clients.
-- Use stable snake_case keys as gettext msgids, for example `user_not_found` and `invalid_token`. Do not use English sentences as localization keys.
+- Keep localization infrastructure under `app/common/localization`.
+- Put locale resolution in `app/common/localization/locale_resolver.py`.
+- Put localization lookup behavior in `app/common/localization/service.py`.
+- Put translations in `app/common/localization/translations/en.json`, `ru.json`, and `kk.json`.
+- Use stable snake_case keys for localization keys, for example `user_not_found` and `invalid_token`. Do not use English sentences as localization keys.
 - Keep stable localization keys internal; do not expose `message_key` in public API responses unless explicitly requested.
 - Map framework validation error types to snake_case localization keys. Do not translate raw English framework messages.
-- Put translated values in `app/locales/{locale}/LC_MESSAGES/messages.po`.
-- Compile updated catalogs to `messages.mo` after changing PO files.
 - Select request locale from the `Accept-Language` header and expose that header in OpenAPI for every operation.
-- Do not create endpoint-local translation dictionaries. Reuse the shared i18n layer and Babel/gettext catalogs.
+- Do not create endpoint-local translation dictionaries. Reuse the shared localization layer.
 - Internal logs, SQL strings, enum values, and developer-only runtime diagnostics can remain English unless they are returned to API clients.

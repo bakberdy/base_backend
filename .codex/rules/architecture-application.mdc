@@ -1,0 +1,18 @@
+---
+description: Use for application layer orchestration, use-case dependencies, transactions, workflow coordination, and application services.
+globs: app/modules/*/application/**/*.py
+---
+
+# Architecture: Application Layer
+
+- The application layer must orchestrate business workflows and contain use cases.
+- Module application code must live under `app/modules/<module>/application`.
+- Use cases must live under `app/modules/<module>/application/use_cases`.
+- Application DTOs must live in `app/modules/<module>/application/dto.py`.
+- Each use case must represent one business scenario and define the operation order for that scenario.
+- Application code may coordinate repositories, domain services, technical services, and application services through contracts.
+- Application code must control transaction boundaries. Multiple repository operations in one workflow must commit together and roll back together on failure.
+- Application code must depend only on interfaces and contracts, not concrete infrastructure implementations.
+- Do not import FastAPI routers, HTTP request objects, HTTP response objects, or route-specific Pydantic schemas into application code.
+- Do not write raw SQLAlchemy queries in application code. Persistence access belongs behind repository contracts.
+- Do not localize messages in business workflow logic. Raise stable error codes and let API boundary handlers localize responses.

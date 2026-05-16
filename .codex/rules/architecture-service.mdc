@@ -1,0 +1,16 @@
+---
+description: Use for focused domain service interfaces, technical services, providers, clients, hashers, notifiers, token services, and external integrations.
+globs: app/modules/*/domain/services.py,app/modules/*/infrastructure/*service.py,app/modules/*/infrastructure/*provider.py,app/modules/*/infrastructure/*client.py,app/modules/*/infrastructure/*hasher.py
+---
+
+# Architecture: Service Layer
+
+- A service must represent one isolated capability or integration.
+- Service interfaces must live in `app/modules/<module>/domain/services.py`.
+- Technical service implementations must live in `app/modules/<module>/infrastructure`.
+- Services may generate tokens, hash passwords, send emails, send notifications, upload files, integrate with external APIs, work with payment providers, or work with AI providers.
+- Service interfaces must end with `Service`, `Provider`, `Client`, or `Hasher`.
+- Keep each service focused on one technical, operational, or domain capability.
+- Do not let a service orchestrate a complete business workflow.
+- Do not let a service replace a use case.
+- Do not put endpoint-specific HTTP behavior or response-schema construction inside services.

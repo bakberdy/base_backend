@@ -1,0 +1,17 @@
+---
+description: Use for domain entities, enums, value objects, domain exceptions, repository interfaces, and service interfaces.
+globs: app/modules/*/domain/**/*.py
+---
+
+# Architecture: Domain Layer
+
+- The domain layer must contain pure business rules and remain framework-independent.
+- Module domain code must live under `app/modules/<module>/domain`.
+- Use `entities.py`, `enums.py`, `exceptions.py`, `repositories.py`, and `services.py` for standard domain files.
+- Domain code may contain entities, enums, value objects, domain exceptions, repository interfaces, and service interfaces.
+- Repository interfaces defined in the domain must end with `Repository`.
+- Service interfaces defined in the domain must end with `Service`, `Provider`, `Client`, or `Hasher`.
+- Domain code must not import FastAPI, SQLAlchemy, Pydantic, Redis, external SDKs, infrastructure implementations, or localization services.
+- Domain code must not contain HTTP concepts, HTTP status codes, request/response schemas, ORM models, localized messages, or infrastructure logic.
+- Domain exceptions must carry stable error codes instead of raw user-facing text.
+- Stable business error codes must use `UPPER_SNAKE_CASE`.

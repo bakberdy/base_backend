@@ -1,0 +1,15 @@
+---
+description: Use for use cases that coordinate a complete business scenario across repositories, services, and transactions.
+globs: app/modules/*/application/use_cases/**/*.py
+---
+
+# Architecture: Use Case Layer
+
+- A use case must orchestrate one complete business scenario.
+- Use cases must live under `app/modules/<module>/application/use_cases`.
+- Use case classes must end with `UseCase`.
+- Use cases must coordinate repositories and services through contracts.
+- Use cases must enforce workflow-specific business rules and define operation order.
+- Use cases must control transaction boundaries. Multiple repository operations in one workflow must commit together and roll back on workflow failure.
+- Keep use cases independent from HTTP details, FastAPI objects, ORM query APIs, infrastructure implementation classes, and localized response text.
+- Use cases may return domain entities, value objects, application DTOs, or explicit result objects that the API layer maps to response schemas.

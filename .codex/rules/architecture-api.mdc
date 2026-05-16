@@ -1,0 +1,17 @@
+---
+description: Use for API layer code: module routers, route dependencies, request/response schemas, status codes, and HTTP boundary behavior.
+globs: app/modules/*/api/**/*.py,app/openapi.py
+---
+
+# Architecture: API Layer
+
+- The API layer must handle only HTTP-related responsibilities.
+- Module API code must live under `app/modules/<module>/api`.
+- Use `router.py` for routes, `schemas.py` for request/response schemas, and `dependencies.py` for module API dependencies.
+- API code may validate requests, parse HTTP input, call use cases or application services, and return explicit response schemas.
+- Every endpoint must call a use case or application service. Routers must remain thin.
+- Keep Pydantic request and response schemas inside the API layer. Do not pass Pydantic schemas into domain entities or domain services.
+- Keep HTTP status codes, HTTP headers, OpenAPI metadata, FastAPI dependencies, and request/response serialization inside the API layer.
+- Do not put business logic, workflow ordering, permission decisions, token generation, password hashing, email sending, or external integration behavior in routers.
+- Do not directly access the database from API code. Routers must not use SQLAlchemy sessions, ORM models, ORM queries, or repository implementation details directly.
+- Do not return ORM models directly from endpoints. Convert application results into explicit response schemas at the API boundary.

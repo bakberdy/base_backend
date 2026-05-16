@@ -1,0 +1,26 @@
+---
+description: Use for cross-layer coordination, dependency direction, module boundaries, common/core ownership, localization, errors, tests, naming, and folder placement.
+globs: app/**/*.py,tests/**/*.py
+---
+
+# Architecture: Coordinated Work
+
+- Dependencies must point inward: `api -> application -> domain` and `infrastructure -> domain`.
+- Follow `architecture-structure.mdc` for folder placement before adding new files.
+- The domain layer must not depend on any outer layer.
+- The application layer must depend only on contracts and interfaces.
+- Infrastructure must implement contracts defined by the domain or application boundary.
+- Every business module must be isolated and named with plural business nouns.
+- Entity names must use singular nouns.
+- Modules must communicate through use cases, interfaces, or application services. A module must not directly access another module's infrastructure implementation.
+- `common` must contain only reusable cross-module functionality such as exceptions, localization, pagination, shared responses, and generic permissions. It must not contain module-specific business logic.
+- `core` must contain only application-wide setup and configuration such as settings, database setup, logging, telemetry, middleware, and security setup. It must not contain business logic.
+- Keep exception handlers in `app/common/exceptions/handlers.py`, localization in `app/common/localization`, shared responses in `app/common/responses`, pagination in `app/common/pagination`, and generic permission dependencies in `app/common/permissions`.
+- Keep configuration, database setup, security setup, logging setup, telemetry setup, and middleware setup in `app/core`.
+- Localization must happen only at the API boundary or exception handler layer. Business logic must use stable error codes instead of localized text.
+- Global exception handlers must convert stable error codes into localized responses.
+- Error responses must follow one unified structure across the whole project. Business logic must not depend on raw error message strings.
+- Request schemas must end with `Request`. Response schemas must end with `Response`.
+- API tests must validate status codes, response bodies, headers, permissions, and rate limits.
+- Application tests must validate workflows. Domain tests must validate pure business rules. Infrastructure tests must validate database and integration behavior.
+- Prioritize maintainability, scalability, explicit responsibility boundaries, low coupling, predictable structure, and testability over shortcut implementations.

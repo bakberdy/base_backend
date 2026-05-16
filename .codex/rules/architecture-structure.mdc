@@ -1,0 +1,96 @@
+---
+description: Use when creating, moving, or reviewing project directories, module folders, layer placement, migrations, and tests.
+globs: app/**/*.py,tests/**/*.py,app/migrations/**/*.py
+---
+
+# Architecture: Project Structure
+
+- The backend must use this top-level structure:
+
+```text
+app/
+  main.py
+  core/
+  common/
+  modules/
+  migrations/
+tests/
+```
+
+- `app/core` is reserved for application-wide setup only:
+
+```text
+app/core/
+  config.py
+  database.py
+  security.py
+  logging.py
+  telemetry.py
+  middleware.py
+```
+
+- `app/common` is reserved for reusable cross-module functionality only:
+
+```text
+app/common/
+  exceptions/
+    base.py
+    handlers.py
+  localization/
+    service.py
+    locale_resolver.py
+    translations/
+      en.json
+      ru.json
+      kk.json
+  responses/
+    error_response.py
+    success_response.py
+  pagination/
+    schemas.py
+    utils.py
+  permissions/
+    dependencies.py
+```
+
+- Every business module must live under `app/modules/<plural_business_name>` and use the same layer layout:
+
+```text
+app/modules/<module>/
+  api/
+    router.py
+    schemas.py
+    dependencies.py
+  application/
+    use_cases/
+    dto.py
+  domain/
+    entities.py
+    enums.py
+    exceptions.py
+    repositories.py
+    services.py
+  infrastructure/
+    sqlalchemy_models.py
+    sqlalchemy_repositories.py
+```
+
+- Add integration-specific infrastructure files inside the owning module, such as `jwt_token_service.py`, `bcrypt_password_hasher.py`, `firebase_push_provider.py`, or `smtp_email_provider.py`.
+- Use case files must be named by the business action, such as `login_user.py`, `refresh_token.py`, `get_users.py`, `change_user_status.py`, or `send_notification.py`.
+- Standard business modules should follow the same structure for `auth`, `users`, `sessions`, `notifications`, and any future plural business module.
+- Keep migrations under `app/migrations/versions`.
+- Tests must mirror modules and layers:
+
+```text
+tests/
+  <module>/
+    api/
+    application/
+    domain/
+    infrastructure/
+  conftest.py
+```
+
+- Do not place new module routers, schemas, dependencies, services, repositories, or models directly under `app/modules/<module>/`. Place them in the matching layer folder.
+- Do not place module-specific business logic in `app/core` or `app/common`.
+- When migrating older flat module files, preserve behavior while moving code into the target layer structure.
