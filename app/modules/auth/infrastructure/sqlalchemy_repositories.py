@@ -40,7 +40,7 @@ def _login_request_entity(model: LoginRequestModel) -> LoginRequest:
     )
 
 
-def _session_entity(model: UserSessionModel) -> UserSession:
+def _session_entity(model: UserSessionModel, *, include_device: bool = False) -> UserSession:
     return UserSession(
         id=model.id,
         user_id=model.user_id,
@@ -50,7 +50,7 @@ def _session_entity(model: UserSessionModel) -> UserSession:
         created_at=model.created_at,
         last_active_at=model.last_active_at,
         revoked_at=model.revoked_at,
-        user_device=_device_entity(model.user_device) if model.user_device is not None else None,
+        user_device=_device_entity(model.user_device) if include_device and model.user_device is not None else None,
     )
 
 
@@ -255,7 +255,7 @@ class SqlAlchemyAuthRepository(AuthRepository):
             .limit(limit)
         )
         result = await self._session.execute(stmt)
-        return [_session_entity(row) for row in result.scalars().all()]
+        return [_session_entity(row, include_device=True) for row in result.scalars().all()]
 
     async def revoke_session(self, session_id: UUID, user_id: UUID, revoked_at: datetime) -> bool:
         result = await self._session.execute(
