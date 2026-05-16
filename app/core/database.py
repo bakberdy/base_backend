@@ -39,7 +39,7 @@ def create_engine(database_url_async: str, *, connect_timeout: float) -> AsyncEn
 
 
 def create_session_maker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
-    return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return async_sessionmaker[AsyncSession](engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:

@@ -46,11 +46,3 @@ def _translations(locale: str) -> dict[str, str]:
 
 def translate(message_key: str) -> str:
     return _translations(get_locale()).get(message_key, message_key)
-
-
-def noop(message_key: str) -> str:
-    return message_key
-
-
-_ = translate
-N_ = noop

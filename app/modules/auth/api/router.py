@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, status
 
-from app.common.localization.service import _
+from app.common.localization.service import translate
 from app.common.pagination.schemas import PaginatedResponse, PaginationDep
 from app.core.config import get_settings
 from app.core.security import limiter
@@ -45,7 +45,7 @@ async def auth_login(
 ) -> LoginResponse:
     result = await use_case.execute(body.email, body.device.to_domain())
     return LoginResponse(
-        message=_(result.message_code),
+        message=translate(result.message_code),
         login_request_id=result.login_request_id,
         otp_expires_in=result.otp_expires_in,
     )
@@ -88,7 +88,7 @@ async def auth_delete_all_sessions(
     use_case: RevokeAllTokensUseCaseDep,
 ) -> RevokeTokenResponse:
     result = await use_case.execute(user_id)
-    return RevokeTokenResponse(message=_(result.message_code))
+    return RevokeTokenResponse(message=translate(result.message_code))
 
 
 @router.delete("/sessions/{session_id}", response_model=RevokeTokenResponse)
@@ -98,7 +98,7 @@ async def auth_delete_session(
     use_case: RevokeTokenUseCaseDep,
 ) -> RevokeTokenResponse:
     result = await use_case.execute(user_id, session_id)
-    return RevokeTokenResponse(message=_(result.message_code))
+    return RevokeTokenResponse(message=translate(result.message_code))
 
 
 @router.patch("/device/notifications", response_model=DeviceNotificationsResponse)
@@ -119,4 +119,4 @@ async def auth_logout(
     use_case: LogoutUserUseCaseDep,
 ) -> LogoutResponse:
     result = await use_case.execute(user_id, session_id)
-    return LogoutResponse(message=_(result.message_code))
+    return LogoutResponse(message=translate(result.message_code))

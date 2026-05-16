@@ -11,6 +11,7 @@ globs: app/**/*.py,app/common/localization/**/*.json
 - Put localization lookup behavior in `app/common/localization/service.py`.
 - Put translations in `app/common/localization/translations/en.json`, `ru.json`, and `kk.json`.
 - Use stable snake_case keys for localization keys, for example `user_not_found` and `invalid_token`. Do not use English sentences as localization keys.
+- Call localization with explicit names such as `translate(message_key)`. Do not import or call localization through `_`, `N_`, or other unclear aliases.
 - Keep stable localization keys internal; do not expose `message_key` in public API responses unless explicitly requested.
 - Map framework validation error types to snake_case localization keys. Do not translate raw English framework messages.
 - Select request locale from the `Accept-Language` header and expose that header in OpenAPI for every operation.

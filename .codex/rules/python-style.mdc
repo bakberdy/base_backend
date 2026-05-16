@@ -7,6 +7,7 @@ globs: **/*.py
 
 - Write simple, typed Python with explicit function signatures and clear return types.
 - Prefer descriptive snake_case names that expose intent, especially boolean names such as `is_active`, `has_permission`, and `should_refresh`.
+- Use clear import and function names. Do not use symbolic or unclear aliases such as `_` for localization or other application behavior.
 - Keep functions focused. Extract helpers when a function mixes validation, persistence, formatting, and orchestration.
 - Prefer early guard clauses for invalid inputs and exceptional states. Keep the successful path easy to scan.
 - Avoid unnecessary `else` blocks after `return`, `raise`, `continue`, or `break`.

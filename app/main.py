@@ -26,43 +26,11 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> Response:
 rate_limit_handler: HTTPExceptionHandler = rate_limit_exceeded_handler
 
 
-def _pg_endpoint_hint(dsn: str) -> str:
-    parsed = urlparse(dsn)
-    host = parsed.hostname or "(no host)"
-    port = parsed.port or 5432
-    return f"{host}:{port}"
-
-
-def _connection_refused_hint(dsn: str) -> str:
-    hostname = urlparse(dsn).hostname
-    if hostname in ("127.0.0.1", "localhost", "::1"):
-        return (
-            "Nothing is listening there yet. From mobile_app_backend run "
-            "`make dev-db-up`, wait until "
-            "the container is healthy, then start uvicorn again."
-        )
-    return (
-        "Ensure Postgres is running. For uvicorn on the host use POSTGRES_HOST=127.0.0.1; "
-        "inside Docker Compose the api service uses hostname `postgres`."
-    )
-
-
-def _caused_by_dns_failure(exc: BaseException) -> bool:
-    current: BaseException | None = exc
-    seen: set[int] = set()
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        if isinstance(current, socket.gaierror):
-            return True
-        current = current.__cause__
-    return False
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
     dsn = settings.database_url
-    target = _pg_endpoint_hint(dsn)
+    target = dsn
     engine = create_engine(
         settings.database_url_async,
         connect_timeout=settings.database_connect_timeout,
@@ -79,25 +47,14 @@ async def lifespan(app: FastAPI):
         ) from exc
     except ConnectionRefusedError as exc:
         await engine.dispose()
-        hint = _connection_refused_hint(dsn)
         raise RuntimeError(
-            f"Cannot reach PostgreSQL at {target} (connection refused). {hint}"
+            f"Cannot reach PostgreSQL at {target} (connection refused)."
         ) from exc
     except OSError as exc:
         await engine.dispose()
-        if _caused_by_dns_failure(exc):
-            raise RuntimeError(
-                f"Could not resolve PostgreSQL host at {target}. "
-                "The hostname `postgres` only works inside Docker's network. "
-                "For local uvicorn use POSTGRES_HOST=127.0.0.1; "
-                "inside Docker Compose use POSTGRES_HOST=postgres."
-            ) from exc
         raise RuntimeError(
-            f"Cannot reach PostgreSQL at {target}: {exc}. "
-            "Ensure Postgres is running and POSTGRES_HOST matches how you run the app "
-            "(127.0.0.1 on the host, service name inside Compose)."
+            f"Cannot reach PostgreSQL at {target}: {exc}."
         ) from exc
-
     app.state.engine = engine
     app.state.session_maker = create_session_maker(engine)
     yield
@@ -107,9 +64,9 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     application = FastAPI(
-        title=f"Mobile app API ({settings.app_env})",
+        title=f"Mobile app API ({settings.environment})",
         description=(
-            f"Environment: **{settings.app_env}**.\n\n"
+            f"Environment: **{settings.environment}**.\n\n"
             "Localized responses support `en`, `kk`, and `ru` through the "
             "`Accept-Language` header."
         ),

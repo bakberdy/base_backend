@@ -9,27 +9,27 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.exceptions.base import ApplicationError
-from app.common.localization.service import _, N_
+from app.common.localization.service import translate
 from app.common.responses.error_response import ErrorDetails, ErrorResponse, ErrorType, FieldError
 
 logger = logging.getLogger(__name__)
 
 _VALIDATION_MESSAGE_KEYS = {
-    "missing": N_("field_required"),
-    "value_error": N_("invalid_value"),
-    "string_type": N_("invalid_string"),
-    "string_too_short": N_("string_too_short"),
-    "string_too_long": N_("string_too_long"),
-    "string_pattern_mismatch": N_("invalid_format"),
-    "int_parsing": N_("invalid_integer"),
-    "int_type": N_("invalid_integer"),
-    "bool_parsing": N_("invalid_boolean"),
-    "bool_type": N_("invalid_boolean"),
-    "uuid_parsing": N_("invalid_uuid"),
-    "uuid_type": N_("invalid_uuid"),
-    "greater_than_equal": N_("value_too_small"),
-    "less_than_equal": N_("value_too_large"),
-    "url_parsing": N_("invalid_url"),
+    "missing": "field_required",
+    "value_error": "invalid_value",
+    "string_type": "invalid_string",
+    "string_too_short": "string_too_short",
+    "string_too_long": "string_too_long",
+    "string_pattern_mismatch": "invalid_format",
+    "int_parsing": "invalid_integer",
+    "int_type": "invalid_integer",
+    "bool_parsing": "invalid_boolean",
+    "bool_type": "invalid_boolean",
+    "uuid_parsing": "invalid_uuid",
+    "uuid_type": "invalid_uuid",
+    "greater_than_equal": "value_too_small",
+    "less_than_equal": "value_too_large",
+    "url_parsing": "invalid_url",
 }
 
 _APPLICATION_STATUS_CODES = {
@@ -60,12 +60,12 @@ def _localized_response(body: ErrorResponse) -> ErrorResponse:
         details = details.model_copy(
             update={
                 "field_errors": [
-                    error.model_copy(update={"message": _(error.message)})
+                    error.model_copy(update={"message": translate(error.message)})
                     for error in details.field_errors
                 ],
             },
         )
-    return body.model_copy(update={"message": _(body.message), "details": details})
+    return body.model_copy(update={"message": translate(body.message), "details": details})
 
 
 def _error_details_from_extra(
