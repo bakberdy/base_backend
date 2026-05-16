@@ -5,7 +5,7 @@ COMPOSE = set -a; . $(ENV_FILE); set +a; ENVIRONMENT=$(ENVIRONMENT) docker compo
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install run i18n-extract i18n-compile postgres-up docker-up docker-build docker-restart docker-down docker-config check-environment
+.PHONY: help install test test-unit type-check check run i18n-extract i18n-compile postgres-up docker-up docker-build docker-restart docker-down docker-config check-environment
 .PHONY: docker-dev docker-dev-down docker-dev-build docker-dev-restart docker-dev-config
 .PHONY: dev-db-up dev-run dev-docker-up dev-docker-down dev-docker-build dev-docker-restart dev-docker-config
 .PHONY: prod-docker-build prod-docker-up prod-docker-down prod-docker-restart prod-docker-config
@@ -46,6 +46,10 @@ help:
 	@echo "    ENVIRONMENT=production make docker-down"
 	@echo ""
 	@echo "=== Other ==="
+	@echo "    make test                            # run all tests"
+	@echo "    make test-unit                       # run unit tests"
+	@echo "    make type-check                      # run mypy"
+	@echo "    make check                           # run tests + mypy"
 	@echo "    make docker-config                   # resolved compose YAML (needs ENVIRONMENT)"
 	@echo "    make i18n-extract                    # update app/locales/messages.pot"
 	@echo "    make i18n-compile                    # compile app/locales/*/messages.po"
@@ -53,6 +57,17 @@ help:
 install:
 	test -d .venv || python3 -m venv .venv
 	$(PYTHON) -m pip install -r requirements.txt
+
+test:
+	$(PYTHON) -m pytest
+
+test-unit:
+	$(PYTHON) -m pytest tests/auth tests/users -q
+
+type-check:
+	$(PYTHON) -m mypy app tests
+
+check: test type-check
 
 i18n-extract:
 	.venv/bin/pybabel extract -F babel.cfg --keywords=api_http_exception:2 -o app/locales/messages.pot app
