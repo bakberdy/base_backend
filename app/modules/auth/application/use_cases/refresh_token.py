@@ -24,12 +24,14 @@ class RefreshTokenUseCase:
         self._unit_of_work = unit_of_work
         self._refresh_expire_days = refresh_expire_days
 
-    async def _maybe_revoke_all_on_reuse(self, payload: dict[str, object], user_id: UUID) -> None:
+    async def _maybe_revoke_all_on_reuse(self, payload: dict[str, object], user_id: UUID) -> bool:
         exp = payload.get("exp")
         if not isinstance(exp, (int, float)):
-            return
+            return False
         if datetime.now(UTC).timestamp() < float(exp):
             await self._auth.revoke_all_active_for_user(user_id, datetime.now(UTC))
+            return True
+        return False
 
     async def execute(self, refresh_token: str) -> TokenPairDto:
         payload = self._tokens.decode_token(refresh_token)
@@ -38,21 +40,30 @@ class RefreshTokenUseCase:
         user_id = UUID(str(payload["sub"]))
         session_id = UUID(str(payload["jti"]))
 
+        committed_before_error = False
         try:
             await self._auth.lock_user_refresh(user_id)
             now = datetime.now(UTC)
             session = await self._auth.get_session_for_update(session_id)
             if session is None:
-                await self._maybe_revoke_all_on_reuse(payload, user_id)
+                if await self._maybe_revoke_all_on_reuse(payload, user_id):
+                    await self._unit_of_work.commit()
+                    committed_before_error = True
                 raise InvalidRefreshTokenError()
             if session.user_id != user_id:
                 await self._auth.revoke_all_active_for_user(user_id, now)
+                await self._unit_of_work.commit()
+                committed_before_error = True
                 raise InvalidRefreshTokenError()
             if session.expires_at < now:
                 await self._auth.revoke_session_by_id(session_id, now)
+                await self._unit_of_work.commit()
+                committed_before_error = True
                 raise TokenExpiredError()
             if not self._hasher.verify_refresh_hash(refresh_token, session.refresh_token_hash):
                 await self._auth.revoke_all_active_for_user(session.user_id, now)
+                await self._unit_of_work.commit()
+                committed_before_error = True
                 raise InvalidRefreshTokenError()
 
             await self._auth.revoke_session_by_id(session_id, now)
@@ -71,7 +82,8 @@ class RefreshTokenUseCase:
             access_token = self._tokens.create_access_token(user_id, new_session_id)
             await self._unit_of_work.commit()
         except Exception:
-            await self._unit_of_work.rollback()
+            if not committed_before_error:
+                await self._unit_of_work.rollback()
             raise
 
         return TokenPairDto(access_token=access_token, refresh_token=new_refresh)
