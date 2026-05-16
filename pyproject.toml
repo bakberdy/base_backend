@@ -4,5 +4,13 @@ explicit_package_bases = true
 mypy_path = "."
 files = ["app", "main.py"]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests that use real app wiring, database, ORM, or infrastructure",
+]
+filterwarnings = [
+    "ignore:Please use `import python_multipart` instead.:PendingDeprecationWarning:starlette\\.formparsers",
+]
+
 [tool.babel.extractors]
 python = "babel.messages.extract:extract_python"
