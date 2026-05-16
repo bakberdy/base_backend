@@ -1,0 +1,19 @@
+from uuid import UUID
+
+from app.modules.users.application.dto import UserDto
+from app.modules.users.application.use_cases._permissions import get_admin_actor, ensure_can_manage_target
+from app.modules.users.domain.exceptions import UserNotFoundError
+from app.modules.users.domain.repositories import UserRepository
+
+
+class GetUserByIdUseCase:
+    def __init__(self, user_repository: UserRepository) -> None:
+        self._users = user_repository
+
+    async def execute(self, actor_id: UUID, user_id: UUID) -> UserDto:
+        actor = await get_admin_actor(self._users, actor_id)
+        target = await self._users.get_by_id(user_id)
+        if target is None:
+            raise UserNotFoundError()
+        ensure_can_manage_target(actor, target)
+        return UserDto.from_entity(target)

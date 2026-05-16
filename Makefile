@@ -6,6 +6,7 @@ COMPOSE = set -a; . $(ENV_FILE); set +a; ENVIRONMENT=$(ENVIRONMENT) docker compo
 .DEFAULT_GOAL := help
 
 .PHONY: help install run i18n-extract i18n-compile postgres-up docker-up docker-build docker-restart docker-down docker-config check-environment
+.PHONY: docker-dev docker-dev-down docker-dev-build docker-dev-restart docker-dev-config
 .PHONY: dev-db-up dev-run dev-docker-up dev-docker-down dev-docker-build dev-docker-restart dev-docker-config
 .PHONY: prod-docker-build prod-docker-up prod-docker-down prod-docker-restart prod-docker-config
 
@@ -24,6 +25,7 @@ help:
 	@echo "    ENVIRONMENT=development make run"
 	@echo ""
 	@echo "  Full stack in Docker (api + postgres):"
+	@echo "    make docker-dev                     # alias for make dev-docker-up"
 	@echo "    make dev-docker-up"
 	@echo "    make dev-docker-down                 # stop stack"
 	@echo ""
@@ -94,6 +96,21 @@ docker-config: check-environment
 	$(COMPOSE) config
 
 # --- Development shortcuts (ENVIRONMENT=development) ---
+
+docker-dev:
+	@$(MAKE) docker-up ENVIRONMENT=development
+
+docker-dev-down:
+	@$(MAKE) docker-down ENVIRONMENT=development
+
+docker-dev-build:
+	@$(MAKE) docker-build ENVIRONMENT=development
+
+docker-dev-restart:
+	@$(MAKE) docker-restart ENVIRONMENT=development
+
+docker-dev-config:
+	@$(MAKE) docker-config ENVIRONMENT=development
 
 dev-db-up:
 	@$(MAKE) postgres-up ENVIRONMENT=development

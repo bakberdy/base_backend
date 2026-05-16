@@ -9,14 +9,13 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import HTTPExceptionHandler
 
-from app.api.error_handlers import register_exception_handlers
+from app.common.exceptions.handlers import register_exception_handlers
 from app.core.config import get_settings
-from app.core.i18n import locale_from_request, reset_locale, set_locale
-from app.core.limiter import limiter
-from app.db.session import create_engine, create_session_maker, create_tables
-from app.modules.auth import router as auth_router
-from app.modules.users.router import router as users_router
-from app.openapi import configure_openapi
+from app.core.database import create_engine, create_session_maker, create_tables
+from app.core.middleware import configure_openapi, register_middlewares
+from app.core.security import limiter
+from app.modules.auth.api.router import router as auth_router
+from app.modules.users.api.router import router as users_router
 
 
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> Response:
@@ -39,7 +38,7 @@ def _connection_refused_hint(dsn: str) -> str:
     if hostname in ("127.0.0.1", "localhost", "::1"):
         return (
             "Nothing is listening there yet. From mobile_app_backend run "
-            "`docker compose up -d postgres`, wait until "
+            "`make dev-db-up`, wait until "
             "the container is healthy, then start uvicorn again."
         )
     return (
@@ -118,15 +117,8 @@ def create_app() -> FastAPI:
     )
     application.state.limiter = limiter
 
-    @application.middleware("http")
-    async def locale_middleware(request: Request, call_next):
-        token = set_locale(locale_from_request(request))
-        try:
-            return await call_next(request)
-        finally:
-            reset_locale(token)
-
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+    register_middlewares(application)
     register_exception_handlers(application)
     application.include_router(auth_router)
     application.include_router(users_router)
