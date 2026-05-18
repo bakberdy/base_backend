@@ -1,11 +1,11 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, String, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.modules.users.domain.enums import UserRole, UserStatus
+from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 
 class UserModel(Base):
@@ -29,3 +29,47 @@ class UserModel(Base):
     )
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class UserProfileModel(Base):
+    __tablename__ = "user_profiles"
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    avatar_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+
+
+class UserPreferencesModel(Base):
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    language: Mapped[str] = mapped_column(
+        String(8),
+        nullable=False,
+        default=UserLanguage.EN.value,
+        server_default=UserLanguage.EN.value,
+    )
+    theme: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default=UserTheme.SYSTEM.value,
+        server_default=UserTheme.SYSTEM.value,
+    )
+    push_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    marketing_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

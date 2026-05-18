@@ -39,6 +39,90 @@ def test_users_me_requires_auth_and_returns_current_user(
     assert body["email"] == user.email
     assert body["role"] == UserRole.USER.value
     assert body["status"] == UserStatus.ACTIVE.value
+    assert body["is_user_data_uploaded"] is False
+
+
+def test_profile_preferences_and_delete_request_flow(
+    integration_client: TestClient,
+    integration_settings: Any,
+) -> None:
+    user = create_authenticated_user(integration_client, integration_settings)
+
+    profile_response = integration_client.post(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+        json={"full_name": "John Smith", "phone_number": "+77001234567"},
+    )
+    assert profile_response.status_code == 201
+    profile_body = profile_response.json()
+    assert profile_body["full_name"] == "John Smith"
+    assert profile_body["completed_at"] is not None
+
+    current_user_response = integration_client.get("/users/me", headers=auth_headers(user.access_token))
+    assert current_user_response.status_code == 200
+    assert current_user_response.json()["is_user_data_uploaded"] is True
+
+    duplicate_profile_response = integration_client.post(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+        json={"full_name": "John Smith"},
+    )
+    assert duplicate_profile_response.status_code == 409
+
+    updated_profile_response = integration_client.patch(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+        json={"full_name": "John Updated"},
+    )
+    assert updated_profile_response.status_code == 200
+    assert updated_profile_response.json()["full_name"] == "John Updated"
+
+    avatar_response = integration_client.put(
+        "/users/me/avatar",
+        headers=auth_headers(user.access_token),
+        files={"avatar": ("avatar.png", b"avatar-content", "image/png")},
+    )
+    assert avatar_response.status_code == 200
+    assert avatar_response.json()["avatar_url"] is not None
+
+    remove_avatar_response = integration_client.delete(
+        "/users/me/avatar",
+        headers=auth_headers(user.access_token),
+    )
+    assert remove_avatar_response.status_code == 200
+    assert remove_avatar_response.json()["avatar_url"] is None
+
+    preferences_response = integration_client.post(
+        "/users/me/preferences",
+        headers=auth_headers(user.access_token),
+        json={"language": "en", "theme": "system"},
+    )
+    assert preferences_response.status_code == 201
+    assert preferences_response.json()["language"] == "en"
+
+    updated_preferences_response = integration_client.patch(
+        "/users/me/preferences",
+        headers=auth_headers(user.access_token),
+        json={"language": "ru", "push_notifications_enabled": False},
+    )
+    assert updated_preferences_response.status_code == 200
+    updated_preferences = updated_preferences_response.json()
+    assert updated_preferences["language"] == "ru"
+    assert updated_preferences["push_notifications_enabled"] is False
+
+    get_preferences_response = integration_client.get(
+        "/users/me/preferences",
+        headers=auth_headers(user.access_token),
+    )
+    assert get_preferences_response.status_code == 200
+    assert get_preferences_response.json()["language"] == "ru"
+
+    delete_request_response = integration_client.post(
+        "/users/me/delete-request",
+        headers=auth_headers(user.access_token),
+    )
+    assert delete_request_response.status_code == 200
+    assert delete_request_response.json()["status"] == UserStatus.DELETION_REQUESTED.value
 
 
 def test_users_list_enforces_permissions_and_pagination_validation(
@@ -115,6 +199,22 @@ def test_users_list_enforces_permissions_and_pagination_validation(
     assert desc_sorted_response.status_code == 200
     desc_sorted_emails = [item["email"] for item in desc_sorted_response.json()["items"]]
     assert desc_sorted_emails == sorted(desc_sorted_emails, reverse=True)
+
+    status_response = integration_client.get(
+        "/users",
+        params={"status": UserStatus.ACTIVE.value},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert status_response.status_code == 200
+    assert all(item["status"] == UserStatus.ACTIVE.value for item in status_response.json()["items"])
+
+    search_response = integration_client.get(
+        "/users",
+        params={"search": "a-user-sort"},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert search_response.status_code == 200
+    assert any(item["email"] == "a-user-sort@example.com" for item in search_response.json()["items"])
 
     invalid_sort_response = integration_client.get(
         "/users",
@@ -245,3 +345,31 @@ def test_update_user_status_success_forbidden_not_found_and_validation(
     )
     assert success_response.status_code == 200
     assert success_response.json()["status"] == UserStatus.BLOCKED.value
+
+
+def test_admin_approve_deletion_request_soft_deletes_user(
+    integration_client: TestClient,
+    integration_settings: Any,
+) -> None:
+    admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
+    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+
+    invalid_approval_response = integration_client.post(
+        f"/users/{target_user.id}/approve-deletion-request",
+        headers=auth_headers(admin.access_token),
+    )
+    assert invalid_approval_response.status_code == 400
+
+    request_response = integration_client.post(
+        "/users/me/delete-request",
+        headers=auth_headers(target_user.access_token),
+    )
+    assert request_response.status_code == 200
+    assert request_response.json()["status"] == UserStatus.DELETION_REQUESTED.value
+
+    approval_response = integration_client.post(
+        f"/users/{target_user.id}/approve-deletion-request",
+        headers=auth_headers(admin.access_token),
+    )
+    assert approval_response.status_code == 200
+    assert approval_response.json()["status"] == UserStatus.DELETED.value

@@ -56,6 +56,8 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
 
             first_page = await repository.list_users(offset=0, limit=2)
             admin_page = await repository.list_users(offset=0, limit=10, role=UserRole.ADMIN)
+            blocked_page = await repository.list_users(offset=0, limit=10, status=UserStatus.BLOCKED)
+            search_page = await repository.list_users(offset=0, limit=10, search="middle")
             email_sorted_page = await repository.list_users(
                 offset=0,
                 limit=10,
@@ -72,6 +74,8 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
             "middle-admin@example.com",
             "old-admin@example.com",
         ]
+        assert [user.email for user in blocked_page] == ["middle-admin@example.com"]
+        assert [user.email for user in search_page] == ["middle-admin@example.com"]
         assert [user.email for user in email_sorted_page] == [
             "middle-admin@example.com",
             "new-user@example.com",

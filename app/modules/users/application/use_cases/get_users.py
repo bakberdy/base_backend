@@ -15,11 +15,15 @@ class GetUsersUseCase:
     async def execute(self, actor_id: UUID, request: BaseListRequest) -> UsersPageDto:
         actor = await get_admin_actor(self._users, actor_id)
         role_filter = None if actor.role == UserRole.SUPER_ADMIN else UserRole.USER
-        total = await self._users.count_users(role=role_filter)
+        status_filter = getattr(request, "status", None)
+        search = getattr(request, "search", None)
+        total = await self._users.count_users(role=role_filter, status=status_filter, search=search)
         rows = await self._users.list_users(
             offset=pagination_offset(request),
             limit=request.limit,
             role=role_filter,
+            status=status_filter,
+            search=search,
             sort_key=request.sort_key,
             sorting_method=request.sorting_method,
         )

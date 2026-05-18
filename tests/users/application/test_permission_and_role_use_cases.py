@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 from app.common.pagination.schemas import SortingMethod
 from app.modules.users.application.dto import UserDto
 from app.modules.users.application.use_cases.change_user_role import ChangeUserRoleUseCase
-from app.modules.users.domain.entities import User
-from app.modules.users.domain.enums import UserRole, UserStatus
+from app.modules.users.domain.entities import User, UserPreferences, UserProfile
+from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.exceptions import ForbiddenUserActionError
 
 
@@ -39,7 +39,13 @@ class UserRepositorySpy:
     async def set_verified(self, user_id: UUID, value: bool) -> None:
         raise NotImplementedError
 
-    async def count_users(self, *, role: UserRole | None = None) -> int:
+    async def count_users(
+        self,
+        *,
+        role: UserRole | None = None,
+        status: UserStatus | None = None,
+        search: str | None = None,
+    ) -> int:
         raise NotImplementedError
 
     async def list_users(
@@ -48,6 +54,8 @@ class UserRepositorySpy:
         offset: int,
         limit: int,
         role: UserRole | None = None,
+        status: UserStatus | None = None,
+        search: str | None = None,
         sort_key: str = "created_at",
         sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[User]:
@@ -68,6 +76,71 @@ class UserRepositorySpy:
         )
 
     async def update_status(self, user_id: UUID, status: UserStatus) -> User | None:
+        raise NotImplementedError
+
+    async def get_profile(self, user_id: UUID) -> UserProfile | None:
+        raise NotImplementedError
+
+    async def create_profile(
+        self,
+        *,
+        user_id: UUID,
+        full_name: str,
+        phone_number: str | None,
+        now: datetime,
+    ) -> UserProfile:
+        raise NotImplementedError
+
+    async def update_profile(
+        self,
+        *,
+        user_id: UUID,
+        full_name: str | None,
+        phone_number: str | None,
+        now: datetime,
+    ) -> UserProfile | None:
+        raise NotImplementedError
+
+    async def update_avatar(
+        self,
+        *,
+        user_id: UUID,
+        avatar_url: str,
+        avatar_object_key: str,
+        now: datetime,
+    ) -> UserProfile | None:
+        raise NotImplementedError
+
+    async def clear_avatar(self, *, user_id: UUID, now: datetime) -> UserProfile | None:
+        raise NotImplementedError
+
+    async def get_preferences(self, user_id: UUID) -> UserPreferences | None:
+        raise NotImplementedError
+
+    async def create_preferences(
+        self,
+        *,
+        user_id: UUID,
+        language: UserLanguage,
+        theme: UserTheme,
+        push_notifications_enabled: bool,
+        email_notifications_enabled: bool,
+        marketing_notifications_enabled: bool,
+        now: datetime,
+    ) -> UserPreferences:
+        raise NotImplementedError
+
+    async def update_preferences(
+        self,
+        *,
+        user_id: UUID,
+        language: UserLanguage | None,
+        theme: UserTheme | None,
+        push_notifications_enabled: bool | None,
+        email_notifications_enabled: bool | None,
+        marketing_notifications_enabled: bool | None,
+        now: datetime,
+    ) -> UserPreferences | None:
         raise NotImplementedError
 
 
