@@ -66,6 +66,7 @@ UserListDep = Annotated[UserListRequest, Depends(get_user_list_request)]
 @router.get(
     "",
     response_model=PaginatedResponse[UserResponse],
+    summary="Admin only: list users",
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_list(
@@ -186,6 +187,7 @@ async def users_request_delete(
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
+    summary="Admin only: get user by id",
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_get(
@@ -199,6 +201,7 @@ async def users_get(
 @router.patch(
     "/{user_id}/role",
     response_model=UserResponse,
+    summary="Super admin only: update user role",
     description=SUPER_ADMIN_ONLY_DESCRIPTION,
 )
 async def users_update_role(
@@ -213,6 +216,7 @@ async def users_update_role(
 @router.patch(
     "/{user_id}/status",
     response_model=UserResponse,
+    summary="Admin only: update user status",
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_update_status(
