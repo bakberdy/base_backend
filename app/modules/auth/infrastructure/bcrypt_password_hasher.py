@@ -27,3 +27,6 @@ class BcryptPasswordHasher(PasswordHasher):
 class SecureOtpCodeProvider(OtpCodeProvider):
     def generate_otp_code(self) -> str:
         return f"{secrets.randbelow(900_000) + 100_000:06d}"
+
+    async def send_otp_code(self, *, email: str, code: str, expires_in_seconds: int) -> None:
+        return None

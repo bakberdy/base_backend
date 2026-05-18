@@ -50,6 +50,11 @@ class LoginUserUseCase:
                 expires_at=now + timedelta(seconds=self._otp_ttl),
                 created_at=now,
             )
+            await self._otp_provider.send_otp_code(
+                email=normalized,
+                code=code,
+                expires_in_seconds=self._otp_ttl,
+            )
             await self._unit_of_work.commit()
         except Exception:
             await self._unit_of_work.rollback()

@@ -20,6 +20,7 @@ from app.modules.auth.application.use_cases.verify_email import VerifyEmailUseCa
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher, TokenService
 from app.modules.auth.infrastructure.bcrypt_password_hasher import BcryptPasswordHasher, SecureOtpCodeProvider
+from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
 from app.modules.auth.infrastructure.sqlalchemy_repositories import SqlAlchemyAuthRepository
 from app.modules.users.api.dependencies import get_user_repository
@@ -37,6 +38,32 @@ def get_password_hasher() -> PasswordHasher:
 
 
 def get_otp_provider() -> OtpCodeProvider:
+    settings = get_settings()
+    if settings.otp_email_enabled:
+        required = {
+            "SMTP_HOST": settings.smtp_host,
+            "SMTP_USERNAME": settings.smtp_username,
+            "SMTP_PASSWORD": settings.smtp_password,
+            "SMTP_SENDER_EMAIL": settings.smtp_sender_email,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            joined = ", ".join(missing)
+            raise RuntimeError(f"Missing SMTP settings for OTP email delivery: {joined}")
+        assert settings.smtp_host is not None
+        assert settings.smtp_username is not None
+        assert settings.smtp_password is not None
+        assert settings.smtp_sender_email is not None
+        return SmtpEmailOtpCodeProvider(
+            host=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_username,
+            password=settings.smtp_password,
+            sender_email=settings.smtp_sender_email,
+            sender_name=settings.smtp_sender_name,
+            use_tls=settings.smtp_use_tls,
+            use_ssl=settings.smtp_use_ssl,
+        )
     return SecureOtpCodeProvider()
 
 

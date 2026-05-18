@@ -21,6 +21,7 @@
   "login_request_already_used": "Запрос входа уже использован",
   "missing_authorization": "Отсутствует авторизация",
   "otp_expired": "Срок действия OTP-кода истек",
+  "otp_delivery_failed": "Не удалось отправить OTP-код. Попробуйте позже",
   "otp_sent_to_email": "OTP-код отправлен на email",
   "request_failed": "Запрос не выполнен",
   "service_unavailable_try_later": "Сервис временно недоступен, попробуйте позже",

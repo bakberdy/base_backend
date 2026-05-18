@@ -46,7 +46,16 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int
     otp_expire_seconds: int
     otp_max_attempts: int
-    dev_otp_code: str | None
+    dev_otp_code: str | None = None
+    otp_email_enabled: bool = False
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_sender_email: str | None = None
+    smtp_sender_name: str = "Mobile App"
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
     rate_limit_login: str
     rate_limit_verify: str
 
