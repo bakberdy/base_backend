@@ -15,8 +15,15 @@ from app.modules.users.api.schemas import UpdateUserRoleRequest, UpdateUserStatu
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+ADMIN_ONLY_DESCRIPTION = "Only users with admin or super_admin roles can use this endpoint."
+SUPER_ADMIN_ONLY_DESCRIPTION = "Only users with the super_admin role can use this endpoint."
 
-@router.get("", response_model=PaginatedResponse[UserResponse])
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[UserResponse],
+    description=ADMIN_ONLY_DESCRIPTION,
+)
 async def users_list(
     user_id: CurrentUserIdDep,
     pagination: PaginationDep,
@@ -34,7 +41,11 @@ async def users_me(user_id: CurrentUserIdDep, use_case: GetCurrentUserUseCaseDep
     return UserResponse.from_dto(await use_case.execute(user_id))
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    description=ADMIN_ONLY_DESCRIPTION,
+)
 async def users_get(
     current_user_id: CurrentUserIdDep,
     user_id: UUID,
@@ -43,7 +54,11 @@ async def users_get(
     return UserResponse.from_dto(await use_case.execute(current_user_id, user_id))
 
 
-@router.patch("/{user_id}/role", response_model=UserResponse)
+@router.patch(
+    "/{user_id}/role",
+    response_model=UserResponse,
+    description=SUPER_ADMIN_ONLY_DESCRIPTION,
+)
 async def users_update_role(
     current_user_id: CurrentUserIdDep,
     user_id: UUID,
@@ -53,7 +68,11 @@ async def users_update_role(
     return UserResponse.from_dto(await use_case.execute(current_user_id, user_id, body.role))
 
 
-@router.patch("/{user_id}/status", response_model=UserResponse)
+@router.patch(
+    "/{user_id}/status",
+    response_model=UserResponse,
+    description=ADMIN_ONLY_DESCRIPTION,
+)
 async def users_update_status(
     current_user_id: CurrentUserIdDep,
     user_id: UUID,
