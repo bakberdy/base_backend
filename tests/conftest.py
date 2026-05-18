@@ -107,6 +107,7 @@ def integration_session_maker(
 @pytest.fixture()
 def integration_client(integration_settings: Any) -> Generator[TestClient, None, None]:
     from app.main import create_app
+    from app.core.security import limiter
 
     asyncio.run(
         _reset_database(
@@ -114,6 +115,7 @@ def integration_client(integration_settings: Any) -> Generator[TestClient, None,
             integration_settings.database_connect_timeout,
         ),
     )
+    limiter.reset()
     application = create_app()
     with TestClient(application, raise_server_exceptions=False) as client:
         yield client
