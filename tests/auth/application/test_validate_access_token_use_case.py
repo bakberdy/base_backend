@@ -2,6 +2,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.common.pagination.schemas import SortingMethod
 from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserSession
 from app.modules.auth.domain.enums import TokenType
@@ -100,7 +101,14 @@ class AuthRepositoryStub:
         raise NotImplementedError
 
     async def list_sessions_for_user(
-        self, user_id: UUID, *, offset: int, limit: int, is_active: bool | None = None
+        self,
+        user_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+        is_active: bool | None = None,
+        sort_key: str = "created_at",
+        sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[UserSession]:
         raise NotImplementedError
 

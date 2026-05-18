@@ -58,14 +58,33 @@ def test_users_list_enforces_permissions_and_pagination_validation(
         integration_settings,
         role=UserRole.SUPER_ADMIN,
     )
-    create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
-
-    validation_response = integration_client.get(
-        "/users",
-        params={"page_number": 0, "limit": 101},
-        headers=auth_headers(super_admin.access_token),
+    create_authenticated_user(
+        integration_client,
+        integration_settings,
+        role=UserRole.USER,
+        email="z-user-sort@example.com",
     )
-    assert validation_response.status_code == 422
+    create_authenticated_user(
+        integration_client,
+        integration_settings,
+        role=UserRole.USER,
+        email="a-user-sort@example.com",
+    )
+
+    invalid_query_params: list[dict[str, str | int]] = [
+        {"page_number": 0},
+        {"limit": 0},
+        {"limit": 101},
+        {"sorting_method": "oldest"},
+        {"sort_key": ""},
+    ]
+    for params in invalid_query_params:
+        validation_response = integration_client.get(
+            "/users",
+            params=params,
+            headers=auth_headers(super_admin.access_token),
+        )
+        assert validation_response.status_code == 422
 
     success_response = integration_client.get(
         "/users",
@@ -74,8 +93,36 @@ def test_users_list_enforces_permissions_and_pagination_validation(
     )
     assert success_response.status_code == 200
     body = success_response.json()
-    assert body["pagination"]["total_items"] >= 3
-    assert len(body["items"]) >= 3
+    assert body["pagination"]["total_items"] >= 4
+    assert body["pagination"]["page"] == 1
+    assert body["pagination"]["limit"] == 10
+    assert len(body["items"]) >= 4
+
+    sorted_response = integration_client.get(
+        "/users",
+        params={"page_number": 1, "limit": 2, "sorting_method": "asc", "sort_key": "email"},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert sorted_response.status_code == 200
+    sorted_emails = [item["email"] for item in sorted_response.json()["items"]]
+    assert sorted_emails == sorted(sorted_emails)
+
+    desc_sorted_response = integration_client.get(
+        "/users",
+        params={"page_number": 1, "limit": 2, "sorting_method": "desc", "sort_key": "email"},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert desc_sorted_response.status_code == 200
+    desc_sorted_emails = [item["email"] for item in desc_sorted_response.json()["items"]]
+    assert desc_sorted_emails == sorted(desc_sorted_emails, reverse=True)
+
+    invalid_sort_response = integration_client.get(
+        "/users",
+        params={"sort_key": "not_a_db_column"},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert invalid_sort_response.status_code == 422
+    assert invalid_sort_response.json()["message"] == "Invalid sort key"
 
 
 def test_users_get_by_id_success_not_found_and_forbidden_boundaries(

@@ -75,6 +75,7 @@ globs: app/**/*.py,tests/**/*.py,docker-compose.yml,Makefile,.github/**/*.yml
   - rate limiting
   - serialization and deserialization
 
+- GET collection API integration tests must cover all shared query input fields: `page_number`, `limit`, `sorting_method`, and `sort_key`. Include valid defaults, boundary failures, invalid enum values, empty values, ascending sort, descending sort, invalid sort keys, and any endpoint-specific fields added by extending the base list request.
 - Auth integration tests should verify:
   - login flow
   - refresh flow

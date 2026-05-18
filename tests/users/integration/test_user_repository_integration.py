@@ -5,6 +5,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.common.pagination.exceptions import InvalidSortKeyError
+from app.common.pagination.schemas import SortingMethod
 from app.modules.users.domain.enums import UserRole, UserStatus
 from app.modules.users.infrastructure.sqlalchemy_models import UserModel
 from app.modules.users.infrastructure.sqlalchemy_repositories import SqlAlchemyUserRepository
@@ -54,6 +56,12 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
 
             first_page = await repository.list_users(offset=0, limit=2)
             admin_page = await repository.list_users(offset=0, limit=10, role=UserRole.ADMIN)
+            email_sorted_page = await repository.list_users(
+                offset=0,
+                limit=10,
+                sort_key="email",
+                sorting_method=SortingMethod.ASC,
+            )
             admin_count = await repository.count_users(role=UserRole.ADMIN)
 
         assert [user.email for user in first_page] == [
@@ -64,7 +72,25 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
             "middle-admin@example.com",
             "old-admin@example.com",
         ]
+        assert [user.email for user in email_sorted_page] == [
+            "middle-admin@example.com",
+            "new-user@example.com",
+            "old-admin@example.com",
+        ]
         assert admin_count == 2
+
+    asyncio.run(scenario())
+
+
+def test_user_repository_rejects_unknown_sort_key(
+    integration_session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async def scenario() -> None:
+        async with integration_session_maker() as session:
+            repository = SqlAlchemyUserRepository(session)
+
+            with pytest.raises(InvalidSortKeyError):
+                await repository.list_users(offset=0, limit=10, sort_key="not_a_db_column")
 
     asyncio.run(scenario())
 

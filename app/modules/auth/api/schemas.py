@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.common.pagination.schemas import BaseListRequest
 from app.modules.auth.application.dto import DeviceDto, SessionDto
 from app.modules.auth.domain.entities import DeviceInfo, DeviceNotifications
 
@@ -119,6 +120,10 @@ class SessionResponse(BaseModel):
             revoked_at=dto.revoked_at,
             is_revoked=dto.is_revoked,
         )
+
+
+class SessionListRequest(BaseListRequest):
+    is_active: bool | None = None
 
 
 class LogoutResponse(BaseModel):

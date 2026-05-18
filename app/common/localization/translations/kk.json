@@ -9,6 +9,7 @@
   "invalid_login_request": "Кіру сұрауы жарамсыз",
   "invalid_otp": "OTP коды қате",
   "invalid_refresh_token": "Refresh токен жарамсыз",
+  "invalid_sort_key": "Сұрыптау өрісі жарамсыз",
   "invalid_string": "Мәтін мәні жарамсыз",
   "invalid_token": "Токен жарамсыз",
   "invalid_url": "URL жарамсыз",

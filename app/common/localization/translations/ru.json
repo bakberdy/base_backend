@@ -9,6 +9,7 @@
   "invalid_login_request": "Недействительный запрос входа",
   "invalid_otp": "Неверный OTP-код",
   "invalid_refresh_token": "Недействительный refresh-токен",
+  "invalid_sort_key": "Недопустимое поле сортировки",
   "invalid_string": "Недопустимое текстовое значение",
   "invalid_token": "Недействительный токен",
   "invalid_url": "Недопустимый URL",

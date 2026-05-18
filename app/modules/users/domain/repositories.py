@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.common.pagination.schemas import SortingMethod
 from app.modules.users.domain.entities import User
 from app.modules.users.domain.enums import UserRole, UserStatus
 
@@ -17,7 +18,15 @@ class UserRepository(Protocol):
 
     async def count_users(self, *, role: UserRole | None = None) -> int: ...
 
-    async def list_users(self, *, offset: int, limit: int, role: UserRole | None = None) -> list[User]: ...
+    async def list_users(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        role: UserRole | None = None,
+        sort_key: str = "created_at",
+        sorting_method: SortingMethod = SortingMethod.DESC,
+    ) -> list[User]: ...
 
     async def update_role(self, user_id: UUID, role: UserRole) -> User | None: ...
 

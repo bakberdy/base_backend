@@ -7,7 +7,9 @@ globs: app/modules/*/api/router.py,app/modules/*/api/schemas.py,app/modules/*/ap
 
 - Route handlers should be thin. They should parse request data, receive dependencies, call the appropriate use case or application service, and return a declared response model.
 - Use Pydantic models for request bodies and response schemas. Avoid raw dict payloads for public API input and output.
-- Use shared pagination contracts from `app/common/pagination`. Do not create endpoint-local pagination response models or dependency shapes.
+- Use shared list-query contracts from `app/common/pagination` for GET collection endpoints. Start from `BaseListRequest`/`BaseListDep` so `limit`, `page_number`, `sorting_method`, and `sort_key` stay consistent everywhere.
+- When a GET collection endpoint needs extra query parameters, extend `BaseListRequest` with an endpoint-specific request model and dependency. Do not redefine the base pagination or sorting fields locally.
+- Treat `sort_key` as a database column name and validate it through the shared sorting helper before applying SQL ordering.
 - Declare `response_model` and return type annotations for routes.
 - Use `async def` for route handlers and any function that performs database, network, or other async I/O.
 - Keep blocking work out of route handlers. Move heavy CPU work, synchronous I/O, and external calls behind dedicated services or async adapters.

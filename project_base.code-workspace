@@ -11,6 +11,7 @@
         }
     ],
     "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder:mobile_app_backend}/.venv/bin/python",
         "python.analysis.extraPaths": [
             "${workspaceFolder:mobile_app_backend}"
         ],

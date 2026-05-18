@@ -9,6 +9,7 @@
   "invalid_login_request": "Invalid login request",
   "invalid_otp": "Invalid OTP",
   "invalid_refresh_token": "Invalid refresh token",
+  "invalid_sort_key": "Invalid sort key",
   "invalid_string": "Invalid text value",
   "invalid_token": "Invalid token",
   "invalid_url": "Invalid URL",

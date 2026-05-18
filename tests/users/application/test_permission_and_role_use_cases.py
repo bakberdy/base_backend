@@ -2,6 +2,7 @@ import asyncio
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from app.common.pagination.schemas import SortingMethod
 from app.modules.users.application.dto import UserDto
 from app.modules.users.application.use_cases.change_user_role import ChangeUserRoleUseCase
 from app.modules.users.domain.entities import User
@@ -41,7 +42,15 @@ class UserRepositorySpy:
     async def count_users(self, *, role: UserRole | None = None) -> int:
         raise NotImplementedError
 
-    async def list_users(self, *, offset: int, limit: int, role: UserRole | None = None) -> list[User]:
+    async def list_users(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        role: UserRole | None = None,
+        sort_key: str = "created_at",
+        sorting_method: SortingMethod = SortingMethod.DESC,
+    ) -> list[User]:
         raise NotImplementedError
 
     async def update_role(self, user_id: UUID, role: UserRole) -> User | None:

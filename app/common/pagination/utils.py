@@ -1,9 +1,9 @@
 import math
 
-from app.common.pagination.schemas import PaginationMeta, PaginationParams
+from app.common.pagination.schemas import BaseListRequest, PaginationMeta
 
 
-def pagination_offset(params: PaginationParams) -> int:
+def pagination_offset(params: BaseListRequest) -> int:
     return (params.page_number - 1) * params.limit
 
 

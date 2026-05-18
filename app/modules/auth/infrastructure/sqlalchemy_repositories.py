@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.common.pagination.schemas import SortingMethod
+from app.common.pagination.sqlalchemy import apply_sorting, model_sort_columns
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserDevice, UserSession
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.infrastructure.sqlalchemy_models import (
@@ -52,6 +54,9 @@ def _session_entity(model: UserSessionModel, *, include_device: bool = False) ->
         revoked_at=model.revoked_at,
         user_device=_device_entity(model.user_device) if include_device and model.user_device is not None else None,
     )
+
+
+_SESSION_SORT_COLUMNS = model_sort_columns(UserSessionModel)
 
 
 class SqlAlchemyAuthRepository(AuthRepository):
@@ -239,21 +244,29 @@ class SqlAlchemyAuthRepository(AuthRepository):
         return int(result.scalar_one() or 0)
 
     async def list_sessions_for_user(
-        self, user_id: UUID, *, offset: int, limit: int, is_active: bool | None = None
+        self,
+        user_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+        is_active: bool | None = None,
+        sort_key: str = "created_at",
+        sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[UserSession]:
         conditions = [UserSessionModel.user_id == user_id]
         if is_active is True:
             conditions.append(UserSessionModel.revoked_at.is_(None))
         elif is_active is False:
             conditions.append(UserSessionModel.revoked_at.is_not(None))
-        stmt = (
+        stmt = apply_sorting(
             select(UserSessionModel)
             .options(selectinload(UserSessionModel.user_device))
-            .where(*conditions)
-            .order_by(UserSessionModel.created_at.desc())
-            .offset(offset)
-            .limit(limit)
+            .where(*conditions),
+            sort_key=sort_key,
+            sorting_method=sorting_method,
+            sort_columns=_SESSION_SORT_COLUMNS,
         )
+        stmt = stmt.offset(offset).limit(limit)
         result = await self._session.execute(stmt)
         return [_session_entity(row, include_device=True) for row in result.scalars().all()]
 

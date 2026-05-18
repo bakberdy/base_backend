@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.common.pagination.schemas import PaginatedResponse, PaginationDep
+from app.common.pagination.schemas import BaseListDep, PaginatedResponse
 from app.modules.auth.api.dependencies import CurrentUserIdDep
 from app.modules.users.api.dependencies import (
     ChangeUserRoleUseCaseDep,
@@ -26,10 +26,10 @@ SUPER_ADMIN_ONLY_DESCRIPTION = "Only users with the super_admin role can use thi
 )
 async def users_list(
     user_id: CurrentUserIdDep,
-    pagination: PaginationDep,
+    request: BaseListDep,
     use_case: GetUsersUseCaseDep,
 ) -> PaginatedResponse[UserResponse]:
-    result = await use_case.execute(user_id, pagination)
+    result = await use_case.execute(user_id, request)
     return PaginatedResponse(
         items=[UserResponse.from_dto(item) for item in result.items],
         pagination=result.pagination,

@@ -51,6 +51,8 @@ globs: app/**/*.py,tests/**/*.py
   - partial payload handling
   - external API normalization
 
+- Shared request/query input components must have unit tests for default values, boundary validation, enum values, offset/meta helpers, extension through subclassed request models, and invalid input errors.
+- Shared pagination and sorting helpers must test both accepted and rejected sort keys, and both ascending and descending ordering behavior when the helper owns that branching.
 - Repositories are usually better covered with integration tests instead of unit tests.
 - Thin routers, DTOs, simple schemas, constants, enums, and plain ORM models usually do not need unit tests.
 - Prioritize unit tests in this order:

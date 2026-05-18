@@ -1,9 +1,10 @@
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.common.localization.service import translate
-from app.common.pagination.schemas import PaginatedResponse, PaginationDep
+from app.common.pagination.schemas import PaginatedResponse, SortingMethod, build_base_list_request
 from app.core.config import get_settings
 from app.core.security import limiter
 from app.modules.auth.api.dependencies import (
@@ -27,6 +28,7 @@ from app.modules.auth.api.schemas import (
     RefreshRequest,
     RefreshResponse,
     RevokeTokenResponse,
+    SessionListRequest,
     SessionResponse,
     VerifyRequest,
     VerifyResponse,
@@ -34,6 +36,26 @@ from app.modules.auth.api.schemas import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 _config = get_settings()
+
+
+def get_session_list_request(
+    page_number: int = Query(1, ge=1, alias="page_number"),
+    limit: int = Query(20, ge=1, le=100, alias="limit"),
+    sorting_method: SortingMethod = Query(SortingMethod.DESC, alias="sorting_method"),
+    sort_key: str = Query("created_at", min_length=1, alias="sort_key"),
+    is_active: bool | None = Query(None, alias="is_active"),
+) -> SessionListRequest:
+    return build_base_list_request(
+        SessionListRequest,
+        page_number=page_number,
+        limit=limit,
+        sorting_method=sorting_method,
+        sort_key=sort_key,
+        is_active=is_active,
+    )
+
+
+SessionListDep = Annotated[SessionListRequest, Depends(get_session_list_request)]
 
 
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -71,11 +93,10 @@ async def auth_refresh(body: RefreshRequest, use_case: RefreshTokenUseCaseDep) -
 @router.get("/sessions", response_model=PaginatedResponse[SessionResponse])
 async def auth_list_sessions(
     user_id: CurrentUserIdDep,
-    pagination: PaginationDep,
+    request: SessionListDep,
     use_case: GetSessionsUseCaseDep,
-    is_active: bool | None = Query(None, alias="is_active"),
 ) -> PaginatedResponse[SessionResponse]:
-    result = await use_case.execute(user_id, pagination, is_active=is_active)
+    result = await use_case.execute(user_id, request, is_active=request.is_active)
     return PaginatedResponse(
         items=[SessionResponse.from_dto(item) for item in result.items],
         pagination=result.pagination,

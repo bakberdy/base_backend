@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.common.pagination.schemas import SortingMethod
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserSession
 
 
@@ -64,7 +65,14 @@ class AuthRepository(Protocol):
     async def count_sessions_for_user(self, user_id: UUID, *, is_active: bool | None = None) -> int: ...
 
     async def list_sessions_for_user(
-        self, user_id: UUID, *, offset: int, limit: int, is_active: bool | None = None
+        self,
+        user_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+        is_active: bool | None = None,
+        sort_key: str = "created_at",
+        sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[UserSession]: ...
 
     async def revoke_session(self, session_id: UUID, user_id: UUID, revoked_at: datetime) -> bool: ...
