@@ -1,7 +1,8 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, status
+from fastapi import Depends, Request, status
+from redis.asyncio import Redis
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,11 +18,12 @@ from app.modules.auth.application.use_cases.revoke_token import RevokeTokenUseCa
 from app.modules.auth.application.use_cases.update_device_notifications import UpdateDeviceNotificationsUseCase
 from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.application.use_cases.verify_email import VerifyEmailUseCase
-from app.modules.auth.domain.repositories import AuthRepository
+from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher, TokenService
 from app.modules.auth.infrastructure.bcrypt_password_hasher import BcryptPasswordHasher, SecureOtpCodeProvider
 from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
+from app.modules.auth.infrastructure.redis_login_request_store import RedisLoginRequestStore
 from app.modules.auth.infrastructure.sqlalchemy_repositories import SqlAlchemyAuthRepository
 from app.modules.users.api.dependencies import get_user_repository
 from app.modules.users.domain.repositories import UserRepository
@@ -31,6 +33,14 @@ http_bearer = HTTPBearer(auto_error=False)
 
 def get_auth_repository(session: AsyncSession = Depends(get_db)) -> AuthRepository:
     return SqlAlchemyAuthRepository(session)
+
+
+def get_redis(request: Request) -> Redis:
+    return request.app.state.redis
+
+
+def get_login_request_store(redis: Redis = Depends(get_redis)) -> LoginRequestStore:
+    return RedisLoginRequestStore(redis)
 
 
 def get_password_hasher() -> PasswordHasher:
@@ -80,6 +90,7 @@ def get_token_service() -> TokenService:
 def login_user_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    login_request_store: LoginRequestStore = Depends(get_login_request_store),
     user_repo: UserRepository = Depends(get_user_repository),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
     otp_provider: OtpCodeProvider = Depends(get_otp_provider),
@@ -87,6 +98,7 @@ def login_user_use_case(
     settings = get_settings()
     return LoginUserUseCase(
         auth_repo,
+        login_request_store,
         user_repo,
         password_hasher,
         otp_provider,
@@ -100,6 +112,7 @@ def login_user_use_case(
 def verify_email_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    login_request_store: LoginRequestStore = Depends(get_login_request_store),
     user_repo: UserRepository = Depends(get_user_repository),
     token_service: TokenService = Depends(get_token_service),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
@@ -107,6 +120,7 @@ def verify_email_use_case(
     settings = get_settings()
     return VerifyEmailUseCase(
         auth_repo,
+        login_request_store,
         user_repo,
         token_service,
         password_hasher,

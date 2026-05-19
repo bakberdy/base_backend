@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     postgres_host: str
     postgres_port: int
 
+    redis_host: str
+    redis_port: int
+    redis_db: int
+    redis_password: str | None = None
+
     database_connect_timeout: float
     database_reset_schema: bool
 
@@ -76,6 +81,11 @@ class Settings(BaseSettings):
         if url.startswith("postgres://"):
             return url.replace("postgres://", "postgresql+asyncpg://", 1)
         return url
+
+    @property
+    def redis_url(self) -> str:
+        auth = f":{self.redis_password}@" if self.redis_password else ""
+        return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
 
 
 @lru_cache

@@ -1,8 +1,7 @@
-import socket
 from contextlib import asynccontextmanager
-from urllib.parse import urlparse
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
@@ -57,7 +56,9 @@ async def lifespan(app: FastAPI):
         ) from exc
     app.state.engine = engine
     app.state.session_maker = create_session_maker(engine)
+    app.state.redis = Redis.from_url(settings.redis_url, decode_responses=False)
     yield
+    await app.state.redis.aclose()
     await engine.dispose()
 
 

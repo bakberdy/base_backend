@@ -62,6 +62,11 @@ async def apply_postgresql_schema_patches(engine: AsyncEngine) -> None:
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_status ON users (status)"))
 
 
+async def drop_legacy_login_request_tables(engine: AsyncEngine) -> None:
+    async with engine.begin() as conn:
+        await conn.execute(text("DROP TABLE IF EXISTS login_requests CASCADE"))
+
+
 def load_model_metadata() -> None:
     import app.modules.auth.infrastructure.sqlalchemy_models  # noqa: F401
     import app.modules.users.infrastructure.sqlalchemy_models  # noqa: F401
@@ -72,6 +77,7 @@ async def create_tables(engine: AsyncEngine) -> None:
     settings = get_settings()
     async with engine.begin() as conn:
         if settings.database_reset_schema:
+            await conn.execute(text("DROP TABLE IF EXISTS login_requests CASCADE"))
             await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     await apply_postgresql_schema_patches(engine)

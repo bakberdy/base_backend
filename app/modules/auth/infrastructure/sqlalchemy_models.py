@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, Uuid
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,33 +33,7 @@ class UserDeviceModel(Base):
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    login_requests: Mapped[list[LoginRequestModel]] = relationship(back_populates="user_device")
     sessions: Mapped[list[UserSessionModel]] = relationship(back_populates="user_device")
-
-
-class LoginRequestModel(Base):
-    __tablename__ = "login_requests"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    user_device_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("user_devices.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    otp_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    attempts_left: Mapped[int] = mapped_column(Integer, nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-    user_device: Mapped[UserDeviceModel] = relationship(back_populates="login_requests")
 
 
 class UserSessionModel(Base):

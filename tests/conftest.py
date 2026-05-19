@@ -36,17 +36,39 @@ async def _assert_database_ready(database_url_async: str, connect_timeout: float
         await engine.dispose()
 
 
+async def _assert_redis_ready(redis_url: str) -> None:
+    from redis.asyncio import Redis
+
+    redis = Redis.from_url(redis_url, decode_responses=False)
+    try:
+        await redis.ping()
+    finally:
+        await redis.aclose()
+
+
+async def _reset_redis(redis_url: str) -> None:
+    from redis.asyncio import Redis
+
+    redis = Redis.from_url(redis_url, decode_responses=False)
+    try:
+        await redis.flushdb()
+    finally:
+        await redis.aclose()
+
+
 async def _reset_database(database_url_async: str, connect_timeout: float) -> None:
     from app.core.database import (
         Base,
         apply_postgresql_schema_patches,
         create_engine,
+        drop_legacy_login_request_tables,
         load_model_metadata,
     )
 
     engine = create_engine(database_url_async, connect_timeout=connect_timeout)
     try:
         load_model_metadata()
+        await drop_legacy_login_request_tables(engine)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
@@ -79,6 +101,11 @@ def integration_settings() -> Any:
     except Exception as exc:
         pytest.skip(f"PostgreSQL integration database is not reachable: {exc}")
 
+    try:
+        asyncio.run(_assert_redis_ready(settings.redis_url))
+    except Exception as exc:
+        pytest.skip(f"Redis integration store is not reachable: {exc}")
+
     return settings
 
 
@@ -94,6 +121,7 @@ def integration_session_maker(
             integration_settings.database_connect_timeout,
         ),
     )
+    asyncio.run(_reset_redis(integration_settings.redis_url))
     engine = create_engine(
         integration_settings.database_url_async,
         connect_timeout=integration_settings.database_connect_timeout,
@@ -115,6 +143,7 @@ def integration_client(integration_settings: Any) -> Generator[TestClient, None,
             integration_settings.database_connect_timeout,
         ),
     )
+    asyncio.run(_reset_redis(integration_settings.redis_url))
     limiter.reset()
     application = create_app()
     with TestClient(application, raise_server_exceptions=False) as client:

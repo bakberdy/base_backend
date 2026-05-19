@@ -24,5 +24,5 @@ prod:
 	set -a; . $(PROD_ENV_FILE); set +a; ENVIRONMENT=production docker compose up --build
 
 test:
-	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up -d postgres
-	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development RUN_INTEGRATION_TESTS=1 ALLOW_INTEGRATION_DB_RESET=1 $(PYTHON) -m pytest
+	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up -d postgres redis
+	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development RUN_INTEGRATION_TESTS=1 ALLOW_INTEGRATION_DB_RESET=1 DEV_OTP_CODE=111111 OTP_EMAIL_ENABLED=false $(PYTHON) -m pytest

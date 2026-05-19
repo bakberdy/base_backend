@@ -1,17 +1,16 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.common.pagination.schemas import SortingMethod
 from app.common.pagination.sqlalchemy import apply_sorting, model_sort_columns
-from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserDevice, UserSession
+from app.modules.auth.domain.entities import DeviceInfo, UserDevice, UserSession
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.infrastructure.sqlalchemy_models import (
-    LoginRequestModel,
     UserDeviceModel,
     UserSessionModel,
 )
@@ -27,18 +26,6 @@ def _device_entity(model: UserDeviceModel) -> UserDevice:
         app_version=model.app_version,
         push_provider=model.push_provider,
         push_token=model.push_token,
-    )
-
-
-def _login_request_entity(model: LoginRequestModel) -> LoginRequest:
-    return LoginRequest(
-        id=model.id,
-        user_id=model.user_id,
-        user_device_id=model.user_device_id,
-        otp_hash=model.otp_hash,
-        attempts_left=model.attempts_left,
-        expires_at=model.expires_at,
-        consumed_at=model.consumed_at,
     )
 
 
@@ -131,56 +118,6 @@ class SqlAlchemyAuthRepository(AuthRepository):
         await self._session.execute(
             update(UserDeviceModel).where(UserDeviceModel.id == user_device_id).values(last_seen_at=at),
         )
-
-    async def delete_pending_logins(self, user_id: UUID, user_device_id: UUID) -> None:
-        await self._session.execute(
-            delete(LoginRequestModel).where(
-                LoginRequestModel.user_id == user_id,
-                LoginRequestModel.user_device_id == user_device_id,
-                LoginRequestModel.consumed_at.is_(None),
-            ),
-        )
-
-    async def create_login_request(
-        self,
-        *,
-        request_id: str,
-        user_id: UUID,
-        user_device_id: UUID,
-        otp_hash: str,
-        attempts_left: int,
-        expires_at: datetime,
-        created_at: datetime,
-    ) -> None:
-        self._session.add(
-            LoginRequestModel(
-                id=request_id,
-                user_id=user_id,
-                user_device_id=user_device_id,
-                otp_hash=otp_hash,
-                attempts_left=attempts_left,
-                expires_at=expires_at,
-                consumed_at=None,
-                created_at=created_at,
-            ),
-        )
-
-    async def get_login_request(self, request_id: str) -> LoginRequest | None:
-        result = await self._session.execute(select(LoginRequestModel).where(LoginRequestModel.id == request_id))
-        row = result.scalar_one_or_none()
-        return _login_request_entity(row) if row is not None else None
-
-    async def mark_login_consumed(self, request_id: str, consumed_at: datetime) -> None:
-        result = await self._session.execute(select(LoginRequestModel).where(LoginRequestModel.id == request_id))
-        row = result.scalar_one_or_none()
-        if row is not None:
-            row.consumed_at = consumed_at
-
-    async def update_login_attempts(self, request_id: str, attempts_left: int) -> None:
-        result = await self._session.execute(select(LoginRequestModel).where(LoginRequestModel.id == request_id))
-        row = result.scalar_one_or_none()
-        if row is not None:
-            row.attempts_left = attempts_left
 
     async def revoke_active_sessions_for_user_device(
         self, user_id: UUID, user_device_id: UUID, revoked_at: datetime

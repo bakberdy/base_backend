@@ -11,10 +11,10 @@
         }
     ],
     "settings": {
-        "python.defaultInterpreterPath": "${workspaceFolder:mobile_app_backend}/.venv/bin/python",
+        "python.defaultInterpreterPath": "${workspaceFolder:backend}/.venv/bin/python",
         "python.analysis.extraPaths": [
-            "${workspaceFolder:mobile_app_backend}"
+            "${workspaceFolder:backend}"
         ],
-        "mypy-type-checker.cwd": "${workspaceFolder:mobile_app_backend}"
+        "mypy-type-checker.cwd": "${workspaceFolder:backend}"
     }
 }

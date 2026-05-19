@@ -11,7 +11,7 @@ from app.modules.auth.domain.exceptions import (
     OtpExpiredError,
     TooManyAttemptsError,
 )
-from app.modules.auth.domain.repositories import AuthRepository
+from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import PasswordHasher, TokenService
 from app.modules.users.domain.repositories import UserRepository
 
@@ -20,6 +20,7 @@ class VerifyEmailUseCase:
     def __init__(
         self,
         auth_repository: AuthRepository,
+        login_request_store: LoginRequestStore,
         user_repository: UserRepository,
         token_service: TokenService,
         password_hasher: PasswordHasher,
@@ -29,6 +30,7 @@ class VerifyEmailUseCase:
         dev_otp_code: str | None = None,
     ) -> None:
         self._auth = auth_repository
+        self._login_requests = login_request_store
         self._users = user_repository
         self._tokens = token_service
         self._hasher = password_hasher
@@ -40,7 +42,7 @@ class VerifyEmailUseCase:
         normalized = email.strip().lower()
         now = datetime.now(UTC)
         try:
-            login_request = await self._auth.get_login_request(login_request_id)
+            login_request = await self._login_requests.get_login_request(login_request_id)
             if login_request is None:
                 raise InvalidLoginRequestError()
 
@@ -62,14 +64,14 @@ class VerifyEmailUseCase:
                 otp_ok = self._hasher.verify_otp(code, login_request.otp_hash)
             if not otp_ok:
                 new_left = login_request.attempts_left - 1
-                await self._auth.update_login_attempts(login_request_id, new_left)
+                await self._login_requests.update_login_attempts(login_request_id, new_left)
                 if new_left <= 0:
                     await self._unit_of_work.commit()
                     raise TooManyAttemptsError()
                 await self._unit_of_work.commit()
                 raise InvalidOtpError(attempts_left=new_left)
 
-            await self._auth.mark_login_consumed(login_request_id, now)
+            await self._login_requests.mark_login_consumed(login_request_id, now)
             if not user.is_verified:
                 await self._users.set_verified(user.id, True)
             await self._auth.revoke_active_sessions_for_user_device(user.id, login_request.user_device_id, now)

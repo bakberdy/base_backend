@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from app.modules.auth.application.dto import DeviceInfo, LoginResultDto, UnitOfWork
-from app.modules.auth.domain.repositories import AuthRepository
+from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher
 from app.modules.users.domain.repositories import UserRepository
 
@@ -14,6 +14,7 @@ class LoginUserUseCase:
     def __init__(
         self,
         auth_repository: AuthRepository,
+        login_request_store: LoginRequestStore,
         user_repository: UserRepository,
         password_hasher: PasswordHasher,
         otp_provider: OtpCodeProvider,
@@ -24,6 +25,7 @@ class LoginUserUseCase:
         dev_otp_code: str | None = None,
     ) -> None:
         self._auth = auth_repository
+        self._login_requests = login_request_store
         self._users = user_repository
         self._hasher = password_hasher
         self._otp_provider = otp_provider
@@ -38,10 +40,10 @@ class LoginUserUseCase:
         try:
             user = await self._users.get_or_create(normalized, now)
             user_device_id = await self._auth.upsert_user_device(user_id=user.id, device=device, now=now)
-            await self._auth.delete_pending_logins(user.id, user_device_id)
+            await self._login_requests.delete_pending_logins(user.id, user_device_id)
             code = self._dev_otp_code if self._dev_otp_code else self._otp_provider.generate_otp_code()
             request_id = f"req_{uuid4().hex}"
-            await self._auth.create_login_request(
+            await self._login_requests.create_login_request(
                 request_id=request_id,
                 user_id=user.id,
                 user_device_id=user_device_id,
@@ -57,6 +59,8 @@ class LoginUserUseCase:
             )
             await self._unit_of_work.commit()
         except Exception:
+            if "request_id" in locals():
+                await self._login_requests.delete_login_request(request_id)
             await self._unit_of_work.rollback()
             raise
 

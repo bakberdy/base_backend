@@ -15,6 +15,18 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
   api:
     build: .
     ports:
@@ -22,12 +34,17 @@ services:
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
       POSTGRES_HOST: postgres
+      REDIS_HOST: redis
     env_file:
       - config/run/config.${ENVIRONMENT}.env
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
     name: mobile_app_backend_${ENVIRONMENT}_pgdata
+  redisdata:
+    name: mobile_app_backend_${ENVIRONMENT}_redisdata

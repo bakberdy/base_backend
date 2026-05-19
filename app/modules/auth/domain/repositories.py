@@ -22,26 +22,6 @@ class AuthRepository(Protocol):
 
     async def touch_user_device(self, user_device_id: UUID, at: datetime) -> None: ...
 
-    async def delete_pending_logins(self, user_id: UUID, user_device_id: UUID) -> None: ...
-
-    async def create_login_request(
-        self,
-        *,
-        request_id: str,
-        user_id: UUID,
-        user_device_id: UUID,
-        otp_hash: str,
-        attempts_left: int,
-        expires_at: datetime,
-        created_at: datetime,
-    ) -> None: ...
-
-    async def get_login_request(self, request_id: str) -> LoginRequest | None: ...
-
-    async def mark_login_consumed(self, request_id: str, consumed_at: datetime) -> None: ...
-
-    async def update_login_attempts(self, request_id: str, attempts_left: int) -> None: ...
-
     async def revoke_active_sessions_for_user_device(
         self, user_id: UUID, user_device_id: UUID, revoked_at: datetime
     ) -> None: ...
@@ -82,3 +62,27 @@ class AuthRepository(Protocol):
     async def revoke_all_active_for_user(self, user_id: UUID, revoked_at: datetime) -> None: ...
 
     async def update_session_last_active(self, session_id: UUID, at: datetime) -> None: ...
+
+
+class LoginRequestStore(Protocol):
+    async def delete_pending_logins(self, user_id: UUID, user_device_id: UUID) -> None: ...
+
+    async def create_login_request(
+        self,
+        *,
+        request_id: str,
+        user_id: UUID,
+        user_device_id: UUID,
+        otp_hash: str,
+        attempts_left: int,
+        expires_at: datetime,
+        created_at: datetime,
+    ) -> None: ...
+
+    async def get_login_request(self, request_id: str) -> LoginRequest | None: ...
+
+    async def mark_login_consumed(self, request_id: str, consumed_at: datetime) -> None: ...
+
+    async def update_login_attempts(self, request_id: str, attempts_left: int) -> None: ...
+
+    async def delete_login_request(self, request_id: str) -> None: ...
