@@ -4,7 +4,7 @@ DEV_ENV_FILE = config/run/config.development.env
 PROD_ENV_FILE = config/run/config.production.env
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev prod test
+.PHONY: help install check-docker dev prod test
 
 help:
 	@echo "Available commands:"
@@ -17,12 +17,15 @@ install:
 	test -d .venv || python3 -m venv .venv
 	$(PYTHON) -m pip install -r requirements.txt
 
-dev:
+check-docker:
+	@docker info >/dev/null 2>&1 || { echo "Docker daemon is not running. Start Docker Desktop, then run the command again."; exit 1; }
+
+dev: check-docker
 	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up --build
 
-prod:
+prod: check-docker
 	set -a; . $(PROD_ENV_FILE); set +a; ENVIRONMENT=production docker compose up --build
 
-test:
+test: check-docker
 	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up -d postgres redis
 	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development RUN_INTEGRATION_TESTS=1 ALLOW_INTEGRATION_DB_RESET=1 DEV_OTP_CODE=111111 OTP_EMAIL_ENABLED=false $(PYTHON) -m pytest

@@ -43,7 +43,6 @@ class Settings(BaseSettings):
     redis_password: str | None = None
 
     database_connect_timeout: float
-    database_reset_schema: bool
 
     jwt_secret_key: str
     jwt_algorithm: str

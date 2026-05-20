@@ -41,7 +41,7 @@ def _replace_http_validation_refs(obj: Any) -> None:
             _replace_http_validation_refs(item)
 
 
-def _strip_legacy_validation_models(schema: dict[str, Any]) -> None:
+def _strip_default_validation_models(schema: dict[str, Any]) -> None:
     components = schema.get("components", {}).get("schemas", {})
     if isinstance(components, dict):
         components.pop("HTTPValidationError", None)
@@ -104,7 +104,7 @@ def configure_openapi(app: FastAPI) -> None:
         _inject_error_response_schema(openapi_schema)
         _inject_accept_language_parameter(openapi_schema)
         _replace_http_validation_refs(openapi_schema)
-        _strip_legacy_validation_models(openapi_schema)
+        _strip_default_validation_models(openapi_schema)
         _normalize_422_descriptions(openapi_schema)
         app.openapi_schema = openapi_schema
         return openapi_schema

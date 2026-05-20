@@ -59,20 +59,16 @@ async def _reset_redis(redis_url: str) -> None:
 async def _reset_database(database_url_async: str, connect_timeout: float) -> None:
     from app.core.database import (
         Base,
-        apply_postgresql_schema_patches,
         create_engine,
-        drop_legacy_login_request_tables,
         load_model_metadata,
     )
 
     engine = create_engine(database_url_async, connect_timeout=connect_timeout)
     try:
         load_model_metadata()
-        await drop_legacy_login_request_tables(engine)
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
-        await apply_postgresql_schema_patches(engine)
     finally:
         await engine.dispose()
 

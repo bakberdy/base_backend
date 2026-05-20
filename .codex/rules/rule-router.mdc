@@ -11,7 +11,7 @@ alwaysApply: true
 - Include `python-style.mdc` for Python implementation, refactoring, cleanup, or review.
 - Include `fastapi-routes.mdc` for route handlers, request/response schemas used by routes, FastAPI dependency signatures, and OpenAPI-facing behavior.
 - Include `layers.mdc` for work that crosses routers, dependencies, schemas, services, repositories, models, or database access boundaries.
-- Include `architecture-structure.mdc` for directory layout, file placement, module structure, migrations, and tests.
+- Include `architecture-structure.mdc` for directory layout, file placement, module structure, schema setup, and tests.
 - Include `architecture-api.mdc` for API layer work: routers, HTTP parsing, status codes, API schemas, and response mapping.
 - Include `architecture-application.mdc` for workflow orchestration, transaction boundaries, application services, and use-case dependencies.
 - Include `architecture-domain.mdc` for entities, value objects, enums, domain exceptions, and repository/service contracts.

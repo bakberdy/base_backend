@@ -1,6 +1,6 @@
 ---
-description: Use when creating, moving, or reviewing project directories, module folders, layer placement, migrations, and tests.
-globs: app/**/*.py,tests/**/*.py,app/migrations/**/*.py
+description: Use when creating, moving, or reviewing project directories, module folders, layer placement, schema setup, and tests.
+globs: app/**/*.py,tests/**/*.py
 ---
 
 # Architecture: Project Structure
@@ -13,7 +13,6 @@ app/
   core/
   common/
   modules/
-  migrations/
 tests/
 ```
 
@@ -78,7 +77,6 @@ app/modules/<module>/
 - Add integration-specific infrastructure files inside the owning module, such as `jwt_token_service.py`, `bcrypt_password_hasher.py`, `firebase_push_provider.py`, or `smtp_email_provider.py`.
 - Use case files must be named by the business action, such as `login_user.py`, `refresh_token.py`, `get_users.py`, `change_user_status.py`, or `send_notification.py`.
 - Standard business modules should follow the same structure for `auth`, `users`, `sessions`, `notifications`, and any future plural business module.
-- Keep migrations under `app/migrations/versions`.
 - Tests must mirror modules and layers:
 
 ```text

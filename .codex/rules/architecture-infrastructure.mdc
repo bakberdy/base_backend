@@ -1,6 +1,6 @@
 ---
 description: Use for infrastructure adapters, database models, external providers, Redis/JWT/SMTP/storage clients, and concrete contract implementations.
-globs: app/modules/*/infrastructure/**/*.py,app/core/database.py,app/migrations/**/*.py
+globs: app/modules/*/infrastructure/**/*.py,app/core/database.py
 ---
 
 # Architecture: Infrastructure Layer

@@ -34,7 +34,7 @@ globs: app/**/*.py,tests/**/*.py,docker-compose.yml,Makefile,.github/**/*.yml
 - Integration tests must use:
   - real database
   - real ORM
-  - real migrations
+  - real schema initialization
   - real dependency graph
 
 - Integration tests must not mock repositories, ORM models, database sessions, use cases under test, or internal services being integrated.
@@ -97,11 +97,11 @@ globs: app/**/*.py,tests/**/*.py,docker-compose.yml,Makefile,.github/**/*.yml
 - Integration tests must avoid hard-coded shared mutable records.
 - Integration tests should be executable in CI/CD pipelines.
 - Integration tests should be runnable in GitHub Actions using service containers.
-- Integration tests must be runnable through a Makefile command such as `make test-integration`.
+- Integration tests must be runnable through the project Makefile test command.
 - CI configuration must use the same integration test command that developers use locally.
 - GitHub Actions integration tests should use service containers for databases and other real infrastructure dependencies.
-- Integration tests must initialize schema using the same migration path used by deployments.
-- Integration tests must fail if migrations cannot build the database from an empty state.
+- Integration tests must initialize schema using the same SQLAlchemy metadata path used by the application.
+- Integration tests must fail if the schema cannot be built from an empty state.
 - Integration tests should be fewer than unit tests and focused on critical paths.
 - Do not duplicate every unit test scenario at integration level.
 - Integration tests must prioritize:
