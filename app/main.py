@@ -77,6 +77,10 @@ def create_app() -> FastAPI:
     )
     application.state.limiter = limiter
 
+    @application.get("/health", tags=["system"])
+    async def health() -> dict[str, str]:
+        return {"status": "ok", "environment": settings.environment}
+
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     register_middlewares(
         application,

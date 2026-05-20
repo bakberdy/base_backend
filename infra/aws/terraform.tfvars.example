@@ -1,0 +1,26 @@
+aws_region   = "us-east-1"
+project_name = "mobile-app-backend"
+environment  = "production"
+
+# First apply can create ECR. After pushing the image, set this to:
+# container_image = "<account-id>.dkr.ecr.us-east-1.amazonaws.com/mobile-app-backend-production:latest"
+container_image = ""
+
+# Set this after creating/importing an ACM certificate in the same region.
+certificate_arn = ""
+
+cors_allowed_origins   = "https://example.com"
+cors_allow_credentials = false
+
+db_name     = "mobile_app"
+db_username = "mobile_app"
+
+otp_email_enabled = true
+smtp_host         = "smtp.example.com"
+smtp_port         = 587
+smtp_username     = "replace-with-smtp-username"
+smtp_password     = "replace-with-smtp-password"
+smtp_sender_email = "no-reply@example.com"
+smtp_sender_name  = "Mobile App"
+smtp_use_tls      = true
+smtp_use_ssl      = false

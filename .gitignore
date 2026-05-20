@@ -90,6 +90,20 @@ docker-compose.override.yml
 compose.override.yml
 .docker/
 
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
 # IDEs and editors
 .idea/
 .vscode/*
