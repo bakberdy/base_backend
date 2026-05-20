@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
             f"Timed out connecting to PostgreSQL at {target} after "
             f"{settings.database_connect_timeout}s. "
             "Ensure Postgres is up (`docker compose up -d`), port 5432 is free, and "
-            "try DATABASE_URL with host 127.0.0.1 instead of localhost."
+            "try DATABASE_URL with host 127.0.0.1 when running the API on the host."
         ) from exc
     except ConnectionRefusedError as exc:
         await engine.dispose()

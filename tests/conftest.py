@@ -19,10 +19,10 @@ def _integration_tests_enabled() -> bool:
     return os.environ.get("RUN_INTEGRATION_TESTS") == "1"
 
 
-def _database_reset_allowed(postgres_db: str) -> bool:
+def _database_reset_allowed(database_name: str) -> bool:
     if os.environ.get("ALLOW_INTEGRATION_DB_RESET") == "1":
         return True
-    return "test" in postgres_db.lower()
+    return "test" in database_name.lower()
 
 
 async def _assert_database_ready(database_url_async: str, connect_timeout: float) -> None:
@@ -81,7 +81,7 @@ def integration_settings() -> Any:
     from app.core.config import get_settings
 
     settings = get_settings()
-    if not _database_reset_allowed(settings.postgres_db):
+    if not _database_reset_allowed(settings.database_name):
         pytest.skip(
             "Integration tests reset database tables. Use a test database name "
             "or set ALLOW_INTEGRATION_DB_RESET=1 explicitly."

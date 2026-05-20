@@ -33,8 +33,8 @@ services:
       - "8000:8000"
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
-      POSTGRES_HOST: postgres
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
     env_file:
       - config/run/config.${ENVIRONMENT}.env
     depends_on:
