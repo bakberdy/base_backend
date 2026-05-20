@@ -21,6 +21,7 @@ alwaysApply: true
 - Include `architecture-use-case.mdc` for complete business scenarios that coordinate repositories, services, rules, operation order, and transactions.
 - Include `architecture-coordination.mdc` for dependency direction, module isolation, common/core placement, localization boundaries, unified errors, naming, and test layer separation.
 - Include `error-handling.mdc` for exceptions, validation failures, HTTP status codes, API error payloads, logging, rollback, and edge cases.
+- Include `logging.mdc` for request tracing, log formatting, observability, structured runtime logs, dependency-failure logs, and diagnosing unclear API/container logs.
 - Include `performance-reliability.mdc` for async I/O, database query shape, pagination, transactions, locking, caching, startup, shutdown, and race conditions.
 - Include `security.mdc` for authentication, authorization, tokens, OTP, secrets, sensitive data, user input normalization, and credential storage.
 - Include `localization.mdc` for user-facing API messages, errors, response text, validation text, locale negotiation, and translation catalogs.

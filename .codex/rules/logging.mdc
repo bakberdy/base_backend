@@ -1,0 +1,17 @@
+---
+description: Use for backend logging, request tracing, observability, and diagnosing API/runtime failures.
+globs: app/**/*.py,Dockerfile,docker-compose.yml,config/run/*.env
+---
+
+# Logging
+
+- Prefer structured, searchable log messages with stable keys such as `method`, `path`, `status_code`, `duration_ms`, `request_id`, `code`, and `cause`.
+- Every request should be traceable with a request ID. Reuse `x-request-id` when provided and return the active request ID in response headers.
+- Log one request completion event per request with method, path, status code, duration, and client address.
+- Application errors must log the internal error code and HTTP status. For 5xx responses, include exception context with `exc_info=True`.
+- External dependency failures must identify the dependency and failure category, such as SMTP authentication, Redis connection, PostgreSQL timeout, or third-party API timeout.
+- Do not log secrets, passwords, refresh tokens, access tokens, OTP codes, authorization headers, cookie values, SMTP credentials, or full database URLs.
+- Do not log full request or response bodies by default. Log only safe identifiers and validation field names unless explicit secure debugging is required.
+- Use `INFO` for successful request lifecycle events, `WARNING` for expected application errors and dependency failures, and `ERROR` or exception logs for unexpected server failures.
+- Keep Uvicorn access logs from duplicating application request logs. Prefer the application request log as the readable source of truth.
+- Make log level configurable through environment settings, with `INFO` as the normal development and production default.

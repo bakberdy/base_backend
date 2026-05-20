@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.exceptions.base import ApplicationError
+from app.core.logging import get_request_id
 from app.common.localization.service import translate
 from app.common.responses.error_response import ErrorDetails, ErrorResponse, ErrorType, FieldError
 
@@ -171,9 +172,20 @@ def _validation_field_errors(raw_errors: Sequence[Any]) -> list[FieldError]:
     return out
 
 
-async def application_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+async def application_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ApplicationError)
     status_code = _APPLICATION_STATUS_CODES.get(exc.code, status.HTTP_400_BAD_REQUEST)
+    cause = exc.__cause__
+    logger.warning(
+        "application_error code=%s status_code=%s method=%s path=%s cause=%s request_id=%s",
+        exc.code,
+        status_code,
+        request.method,
+        request.url.path,
+        type(cause).__name__ if cause else "-",
+        get_request_id(),
+        exc_info=status_code >= 500,
+    )
     details_payload = {"status_code": status_code, "type": ErrorType.SNACKBAR.value, **exc.details}
     body = _localized_response(
         ErrorResponse(
@@ -185,14 +197,28 @@ async def application_exception_handler(_request: Request, exc: Exception) -> JS
     return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"))
 
 
-async def http_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, StarletteHTTPException)
+    logger.info(
+        "http_error status_code=%s method=%s path=%s request_id=%s",
+        exc.status_code,
+        request.method,
+        request.url.path,
+        get_request_id(),
+    )
     body = _http_exception_payload(exc)
     return JSONResponse(status_code=exc.status_code, content=body.model_dump(mode="json"))
 
 
-async def validation_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+async def validation_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)
+    logger.info(
+        "validation_error method=%s path=%s fields=%s request_id=%s",
+        request.method,
+        request.url.path,
+        [error.field_name for error in _validation_field_errors(exc.errors())],
+        get_request_id(),
+    )
     details = ErrorDetails(
         status_code=422,
         type=ErrorType.INLINE_ERROR,
@@ -202,8 +228,13 @@ async def validation_exception_handler(_request: Request, exc: Exception) -> JSO
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
 
-async def unhandled_exception_handler(_request: Request, _exc: Exception) -> JSONResponse:
-    logger.exception("Unhandled server error")
+async def unhandled_exception_handler(request: Request, _exc: Exception) -> JSONResponse:
+    logger.exception(
+        "unhandled_server_error method=%s path=%s request_id=%s",
+        request.method,
+        request.url.path,
+        get_request_id(),
+    )
     body = _localized_response(
         ErrorResponse(
             message="service_unavailable_try_later",

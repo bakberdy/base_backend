@@ -11,6 +11,7 @@ from starlette.types import HTTPExceptionHandler
 from app.common.exceptions.handlers import register_exception_handlers
 from app.core.config import get_settings
 from app.core.database import create_engine, create_session_maker, create_tables
+from app.core.logging import configure_logging
 from app.core.middleware import configure_openapi, register_middlewares
 from app.core.security import limiter
 from app.modules.auth.api.router import router as auth_router
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(settings.log_level)
     application = FastAPI(
         title=f"Mobile app API ({settings.environment})",
         description=(

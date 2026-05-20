@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     )
 
     environment: Environment = Field(default=_environment)
+    log_level: str = "INFO"
 
     postgres_user: str
     postgres_password: str

@@ -1,23 +1,46 @@
+import logging
+from time import perf_counter
+from uuid import uuid4
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from starlette.requests import Request
-from typing import Any
 
+from app.core.logging import reset_request_id, set_request_id
 from app.common.localization.locale_resolver import locale_from_request
 from app.common.localization.service import SUPPORTED_LOCALES, reset_locale, set_locale
 from app.common.responses.error_response import ErrorResponse
 
 _HTTP_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
+logger = logging.getLogger(__name__)
 
 
 def register_middlewares(app: FastAPI) -> None:
     @app.middleware("http")
-    async def locale_middleware(request: Request, call_next):
-        token = set_locale(locale_from_request(request))
+    async def request_context_middleware(request: Request, call_next):
+        request_id = request.headers.get("x-request-id") or uuid4().hex
+        request_id_token = set_request_id(request_id)
+        locale_token = set_locale(locale_from_request(request))
+        started_at = perf_counter()
+        status_code = 500
         try:
-            return await call_next(request)
+            response = await call_next(request)
+            status_code = response.status_code
+            response.headers["x-request-id"] = request_id
+            return response
         finally:
-            reset_locale(token)
+            duration_ms = (perf_counter() - started_at) * 1000
+            logger.info(
+                "request_completed method=%s path=%s status_code=%s duration_ms=%.2f client=%s",
+                request.method,
+                request.url.path,
+                status_code,
+                duration_ms,
+                request.client.host if request.client else "-",
+            )
+            reset_locale(locale_token)
+            reset_request_id(request_id_token)
 
 
 def _inject_error_response_schema(schema: dict[str, Any]) -> None:
