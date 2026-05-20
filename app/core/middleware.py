@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 
 from app.core.logging import reset_request_id, set_request_id
@@ -16,7 +17,22 @@ _HTTP_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
 logger = logging.getLogger(__name__)
 
 
-def register_middlewares(app: FastAPI) -> None:
+def register_middlewares(
+    app: FastAPI,
+    *,
+    cors_allowed_origins: list[str],
+    cors_allow_credentials: bool,
+) -> None:
+    if cors_allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_allowed_origins,
+            allow_credentials=cors_allow_credentials,
+            allow_methods=["*"],
+            allow_headers=["*"],
+            expose_headers=["x-request-id"],
+        )
+
     @app.middleware("http")
     async def request_context_middleware(request: Request, call_next):
         request_id = request.headers.get("x-request-id") or uuid4().hex

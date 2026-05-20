@@ -78,7 +78,11 @@ def create_app() -> FastAPI:
     application.state.limiter = limiter
 
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-    register_middlewares(application)
+    register_middlewares(
+        application,
+        cors_allowed_origins=settings.cors_origins,
+        cors_allow_credentials=settings.cors_allow_credentials,
+    )
     register_exception_handlers(application)
     application.include_router(auth_router)
     application.include_router(users_router)

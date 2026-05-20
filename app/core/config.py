@@ -31,6 +31,8 @@ class Settings(BaseSettings):
 
     environment: Environment = Field(default=_environment)
     log_level: str = "INFO"
+    cors_allowed_origins: str = ""
+    cors_allow_credentials: bool = False
 
     postgres_user: str
     postgres_password: str
@@ -86,6 +88,14 @@ class Settings(BaseSettings):
     def redis_url(self) -> str:
         auth = f":{self.redis_password}@" if self.redis_password else ""
         return f"redis://{auth}{self.redis_host}:{self.redis_port}/{self.redis_db}"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.cors_allowed_origins.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache
