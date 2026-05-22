@@ -19,7 +19,7 @@ locals {
     { name = "REFRESH_TOKEN_EXPIRE_DAYS", value = tostring(var.refresh_token_expire_days) },
     { name = "OTP_EXPIRE_SECONDS", value = tostring(var.otp_expire_seconds) },
     { name = "OTP_MAX_ATTEMPTS", value = tostring(var.otp_max_attempts) },
-    { name = "DEV_OTP_CODE", value = "" },
+    { name = "DEV_OTP_CODE", value = var.dev_otp_code },
     { name = "OTP_EMAIL_ENABLED", value = tostring(var.otp_email_enabled) },
     { name = "SMTP_HOST", value = var.smtp_host },
     { name = "SMTP_PORT", value = tostring(var.smtp_port) },
@@ -61,7 +61,7 @@ resource "aws_secretsmanager_secret_version" "app" {
   secret_id = aws_secretsmanager_secret.app.id
   secret_string = jsonencode({
     DATABASE_URL   = "postgresql://${var.db_username}:${random_password.db.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/${var.db_name}"
-    JWT_SECRET_KEY = random_password.jwt.result
+    JWT_SECRET_KEY = var.jwt_secret_key != "" ? var.jwt_secret_key : random_password.jwt.result
     SMTP_PASSWORD  = var.smtp_password
   })
 }

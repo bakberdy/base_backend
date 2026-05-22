@@ -103,7 +103,7 @@ variable "cors_allow_credentials" {
 variable "access_token_expire_minutes" {
   description = "Access token lifetime in minutes."
   type        = number
-  default     = 15
+  default     = 1
 }
 
 variable "refresh_token_expire_days" {
@@ -124,10 +124,24 @@ variable "otp_max_attempts" {
   default     = 5
 }
 
+variable "dev_otp_code" {
+  description = "Fixed OTP code for temporary/non-production deploys. Leave empty for real production."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "otp_email_enabled" {
   description = "Whether SMTP OTP delivery is enabled."
   type        = bool
   default     = true
+}
+
+variable "jwt_secret_key" {
+  description = "JWT secret. Leave empty to generate one."
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "smtp_host" {

@@ -16,6 +16,8 @@ db_name     = "mobile_app"
 db_username = "mobile_app"
 
 otp_email_enabled = true
+dev_otp_code      = ""
+jwt_secret_key    = ""
 smtp_host         = "smtp.example.com"
 smtp_port         = 587
 smtp_username     = "replace-with-smtp-username"
