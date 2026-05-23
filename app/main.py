@@ -41,9 +41,7 @@ async def lifespan(app: FastAPI):
         await engine.dispose()
         raise RuntimeError(
             f"Timed out connecting to PostgreSQL at {target} after "
-            f"{settings.database_connect_timeout}s. "
-            "Ensure Postgres is up (`docker compose up -d`), port 5432 is free, and "
-            "try DATABASE_URL with host 127.0.0.1 when running the API on the host."
+            f"{settings.database_connect_timeout}s."
         ) from exc
     except ConnectionRefusedError as exc:
         await engine.dispose()
@@ -67,19 +65,15 @@ def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
     application = FastAPI(
-        title=f"Mobile app API ({settings.environment})",
-        description=(
-            f"Environment: **{settings.environment}**.\n\n"
-            "Localized responses support `en`, `kk`, and `ru` through the "
-            "`Accept-Language` header."
-        ),
+        title=settings.app_title,
+        description=settings.app_description,
         lifespan=lifespan,
     )
     application.state.limiter = limiter
 
     @application.get("/health", tags=["system"])
     async def health() -> dict[str, str]:
-        return {"status": "ok", "environment": settings.environment}
+        return {"status": settings.health_status, "environment": settings.environment}
 
     application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     register_middlewares(

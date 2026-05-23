@@ -1,9 +1,3 @@
-variable "aws_region" {
-  description = "AWS region for all resources."
-  type        = string
-  default     = "us-east-1"
-}
-
 variable "project_name" {
   description = "Short project name used in AWS resource names."
   type        = string
@@ -11,21 +5,31 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Application environment passed to the container."
+  description = "Deployment environment name."
   type        = string
   default     = "production"
 }
 
-variable "container_image" {
-  description = "Full container image URI. Leave empty to use this stack's ECR repository with the latest tag."
+variable "aws_region" {
+  description = "AWS region for all resources."
   type        = string
-  default     = ""
+  default     = "us-east-1"
 }
 
-variable "certificate_arn" {
-  description = "ACM certificate ARN for HTTPS. Leave empty to expose HTTP only."
+variable "instance_type" {
+  description = "EC2 instance type for the single-host MVP."
   type        = string
-  default     = ""
+  default     = "t3.micro"
+}
+
+variable "key_name" {
+  description = "Existing EC2 key pair name for SSH access."
+  type        = string
+}
+
+variable "allowed_ssh_cidr" {
+  description = "CIDR allowed to connect over SSH."
+  type        = string
 }
 
 variable "vpc_cidr" {
@@ -34,161 +38,18 @@ variable "vpc_cidr" {
   default     = "10.40.0.0/16"
 }
 
-variable "db_name" {
-  description = "PostgreSQL database name."
-  type        = string
-  default     = "mobile_app"
-}
-
-variable "db_username" {
-  description = "PostgreSQL master username."
-  type        = string
-  default     = "mobile_app"
-}
-
-variable "db_instance_class" {
-  description = "RDS instance size."
-  type        = string
-  default     = "db.t4g.micro"
-}
-
-variable "db_allocated_storage" {
-  description = "RDS storage in GB."
-  type        = number
-  default     = 20
-}
-
-variable "redis_node_type" {
-  description = "ElastiCache Redis node size."
-  type        = string
-  default     = "cache.t4g.micro"
-}
-
-variable "app_cpu" {
-  description = "Fargate task CPU units."
-  type        = number
-  default     = 512
-}
-
-variable "app_memory" {
-  description = "Fargate task memory in MB."
-  type        = number
-  default     = 1024
-}
-
-variable "app_desired_count" {
-  description = "Number of ECS tasks."
-  type        = number
-  default     = 1
-}
-
-variable "log_level" {
-  description = "Application log level."
-  type        = string
-  default     = "INFO"
-}
-
-variable "cors_allowed_origins" {
-  description = "Comma-separated CORS origins."
+variable "domain_name" {
+  description = "Domain name served by nginx. Leave empty to accept any host."
   type        = string
   default     = ""
 }
 
-variable "cors_allow_credentials" {
-  description = "Whether CORS credentials are allowed."
-  type        = bool
-  default     = false
-}
-
-variable "access_token_expire_minutes" {
-  description = "Access token lifetime in minutes."
-  type        = number
-  default     = 1
-}
-
-variable "refresh_token_expire_days" {
-  description = "Refresh token lifetime in days."
-  type        = number
-  default     = 14
-}
-
-variable "otp_expire_seconds" {
-  description = "OTP lifetime in seconds."
-  type        = number
-  default     = 600
-}
-
-variable "otp_max_attempts" {
-  description = "Maximum OTP attempts."
-  type        = number
-  default     = 5
-}
-
-variable "dev_otp_code" {
-  description = "Fixed OTP code for temporary/non-production deploys. Leave empty for real production."
+variable "container_image" {
+  description = "Backend container image URI pulled by Docker Compose on EC2."
   type        = string
-  default     = ""
-  sensitive   = true
-}
 
-variable "otp_email_enabled" {
-  description = "Whether SMTP OTP delivery is enabled."
-  type        = bool
-  default     = true
-}
-
-variable "jwt_secret_key" {
-  description = "JWT secret. Leave empty to generate one."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "smtp_host" {
-  description = "SMTP host for OTP email delivery."
-  type        = string
-  default     = ""
-}
-
-variable "smtp_port" {
-  description = "SMTP port."
-  type        = number
-  default     = 587
-}
-
-variable "smtp_username" {
-  description = "SMTP username."
-  type        = string
-  default     = ""
-}
-
-variable "smtp_password" {
-  description = "SMTP password. Stored in Secrets Manager."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "smtp_sender_email" {
-  description = "SMTP sender email."
-  type        = string
-  default     = ""
-}
-
-variable "smtp_sender_name" {
-  description = "SMTP sender name."
-  type        = string
-  default     = "Mobile App"
-}
-
-variable "smtp_use_tls" {
-  description = "Use STARTTLS for SMTP."
-  type        = bool
-  default     = true
-}
-
-variable "smtp_use_ssl" {
-  description = "Use SMTP SSL."
-  type        = bool
-  default     = false
+  validation {
+    condition     = length(trimspace(var.container_image)) > 0
+    error_message = "container_image must be set to a pullable backend image."
+  }
 }

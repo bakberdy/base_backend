@@ -1,34 +1,24 @@
-output "alb_dns_name" {
-  description = "Public ALB DNS name."
-  value       = aws_lb.api.dns_name
+output "ec2_public_ip" {
+  description = "Current public IP assigned to the EC2 instance."
+  value       = aws_instance.app.public_ip
 }
 
-output "ecr_repository_url" {
-  description = "ECR repository URL for the API image."
-  value       = aws_ecr_repository.api.repository_url
+output "elastic_ip" {
+  description = "Static Elastic IP associated with the EC2 instance."
+  value       = aws_eip.app.public_ip
 }
 
-output "ecs_cluster_name" {
-  description = "ECS cluster name."
-  value       = aws_ecs_cluster.main.name
+output "instance_id" {
+  description = "EC2 instance ID."
+  value       = aws_instance.app.id
 }
 
-output "ecs_service_name" {
-  description = "ECS service name."
-  value       = aws_ecs_service.api.name
+output "ssh_connection_command" {
+  description = "SSH command for connecting to the instance."
+  value       = "ssh -i <path-to-private-key> ec2-user@${aws_eip.app.public_ip}"
 }
 
-output "app_secret_arn" {
-  description = "Secrets Manager secret used by the ECS task."
-  value       = aws_secretsmanager_secret.app.arn
-}
-
-output "database_endpoint" {
-  description = "RDS endpoint."
-  value       = aws_db_instance.postgres.address
-}
-
-output "redis_endpoint" {
-  description = "Redis primary endpoint."
-  value       = aws_elasticache_replication_group.redis.primary_endpoint_address
+output "domain_setup_instructions" {
+  description = "DNS instructions for routing a domain to this MVP host."
+  value       = var.domain_name != "" ? "Create or update an A record for ${var.domain_name} pointing to ${aws_eip.app.public_ip}." : "Set domain_name and create an A record pointing to ${aws_eip.app.public_ip}, or use the Elastic IP directly."
 }

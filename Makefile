@@ -21,11 +21,11 @@ check-docker:
 	@docker info >/dev/null 2>&1 || { echo "Docker daemon is not running. Start Docker Desktop, then run the command again."; exit 1; }
 
 dev: check-docker
-	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up --build
+	set -a; . $(DEV_ENV_FILE); set +a; docker compose up --build
 
 prod: check-docker
-	set -a; . $(PROD_ENV_FILE); set +a; ENVIRONMENT=production docker compose up --build
+	set -a; . $(PROD_ENV_FILE); set +a; docker compose up --build
 
 test: check-docker
-	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development docker compose up -d postgres redis
-	set -a; . $(DEV_ENV_FILE); set +a; ENVIRONMENT=development RUN_INTEGRATION_TESTS=1 ALLOW_INTEGRATION_DB_RESET=1 DEV_OTP_CODE=111111 OTP_EMAIL_ENABLED=false $(PYTHON) -m pytest
+	set -a; . $(DEV_ENV_FILE); set +a; docker compose up -d postgres redis
+	set -a; . $(DEV_ENV_FILE); set +a; RUN_INTEGRATION_TESTS=1 ALLOW_INTEGRATION_DB_RESET=1 $(PYTHON) -m pytest

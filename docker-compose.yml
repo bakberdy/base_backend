@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -33,8 +33,8 @@ services:
       - "8000:8000"
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${POSTGRES_SCHEME}://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DOCKER_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      REDIS_URL: ${REDIS_SCHEME}://${REDIS_DOCKER_HOST}:${REDIS_PORT}/${REDIS_DB}
     env_file:
       - config/run/config.${ENVIRONMENT}.env
     depends_on:

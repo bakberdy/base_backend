@@ -1,28 +1,9 @@
-aws_region   = "us-east-1"
-project_name = "mobile-app-backend"
-environment  = "production"
-
-# First apply can create ECR. After pushing the image, set this to:
-# container_image = "<account-id>.dkr.ecr.us-east-1.amazonaws.com/mobile-app-backend-production:latest"
-container_image = ""
-
-# Set this after creating/importing an ACM certificate in the same region.
-certificate_arn = ""
-
-cors_allowed_origins   = "https://example.com"
-cors_allow_credentials = false
-
-db_name     = "mobile_app"
-db_username = "mobile_app"
-
-otp_email_enabled = true
-dev_otp_code      = ""
-jwt_secret_key    = ""
-smtp_host         = "smtp.example.com"
-smtp_port         = 587
-smtp_username     = "replace-with-smtp-username"
-smtp_password     = "replace-with-smtp-password"
-smtp_sender_email = "no-reply@example.com"
-smtp_sender_name  = "Mobile App"
-smtp_use_tls      = true
-smtp_use_ssl      = false
+project_name     = "mobile-app-backend"
+environment      = "production"
+aws_region       = "us-east-1"
+instance_type    = "t3.micro"
+key_name         = "replace-with-existing-key-pair"
+allowed_ssh_cidr = "203.0.113.10/32"
+vpc_cidr         = "10.40.0.0/16"
+domain_name      = "api.example.com"
+container_image  = "ghcr.io/example/mobile-app-backend:latest"

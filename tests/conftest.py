@@ -8,9 +8,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-os.environ.setdefault("ENVIRONMENT", "development")
-
-
 def pytest_configure() -> None:
     pytest.register_assert_rewrite("tests.helpers")
 
