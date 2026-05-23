@@ -12,8 +12,6 @@ if _environment is None:
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _ENV_FILE = _PROJECT_ROOT / "config" / "run" / f"config.{_environment}.env"
-if not _ENV_FILE.is_file():
-    raise RuntimeError(f"Config env file was not found: {_ENV_FILE}")
 
 
 class Settings(BaseSettings):
