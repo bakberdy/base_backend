@@ -44,6 +44,12 @@ variable "domain_name" {
   default     = ""
 }
 
+variable "certificate_email" {
+  description = "Email for Let's Encrypt certificate registration. Leave empty to register without email."
+  type        = string
+  default     = ""
+}
+
 variable "container_image" {
   description = "Backend container image URI pulled by Docker Compose on EC2."
   type        = string

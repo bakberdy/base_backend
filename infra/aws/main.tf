@@ -161,6 +161,7 @@ resource "aws_instance" "app" {
 
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     app_directory        = local.app_directory
+    certificate_email    = var.certificate_email
     cloudwatch_log_group = aws_cloudwatch_log_group.app.name
     container_image      = var.container_image
     domain_name          = local.domain_name

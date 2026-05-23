@@ -84,6 +84,7 @@ Edit `terraform.tfvars`:
 - `allowed_ssh_cidr`: your current public IP as a `/32`, or a narrow trusted CIDR.
 - `container_image`: GitHub Container Registry image, for example `ghcr.io/<github-owner>/<github-repo>:latest`.
 - `domain_name`: DNS name nginx should serve. Leave empty to accept any host.
+- `certificate_email`: email used for Let's Encrypt registration. Leave empty only if you intentionally want no expiry notices.
 
 Do not commit `terraform.tfvars`. It is ignored by git.
 
@@ -100,6 +101,8 @@ After apply, use the outputs:
 - `elastic_ip`: stable IP for DNS.
 - `ssh_connection_command`: base SSH command.
 - `domain_setup_instructions`: DNS A-record guidance.
+
+Before expecting HTTPS to work, point the `domain_name` A record to the Elastic IP. Let's Encrypt validates the domain over HTTP on port `80`, then nginx switches to HTTPS on port `443`.
 
 ## Runtime Files On EC2
 
@@ -133,6 +136,20 @@ To deploy a new image after GitHub publishes it:
 cd /opt/<project>-<environment>
 docker compose pull app
 docker compose up -d app
+```
+
+## HTTPS
+
+When `domain_name` is set and points to the instance Elastic IP, bootstrap uses the Compose `certbot` service to issue a Let's Encrypt certificate. Nginx first serves HTTP for the ACME challenge, then the bootstrap rewrites `nginx/default.conf` to redirect HTTP to HTTPS and serve the backend on `443`.
+
+Certificate files live in the Docker volume named `letsencrypt`. A daily cron job renews certificates and reloads nginx.
+
+To check HTTPS on the server:
+
+```bash
+cd /opt/<project>-<environment>
+docker compose ps
+curl -I https://<domain_name>/health
 ```
 
 ## Logs And Metrics
