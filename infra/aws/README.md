@@ -48,7 +48,28 @@ This MVP intentionally removes higher-cost managed services:
 - Terraform `>= 1.6`
 - AWS CLI authenticated to the target account
 - An existing EC2 key pair in the target region
-- A pullable backend container image in a registry such as GHCR, Docker Hub, or another private registry already reachable by the instance
+- A pullable backend container image in GitHub Container Registry
+
+## Publish Image With GitHub
+
+This repo includes `.github/workflows/publish-image.yml`. When pushed to GitHub, it builds the backend Docker image and publishes it to GitHub Container Registry:
+
+```text
+ghcr.io/<github-owner>/<github-repo>:latest
+ghcr.io/<github-owner>/<github-repo>:sha-<commit>
+```
+
+In GitHub, make the package public if you want EC2 to pull it without registry credentials:
+
+```text
+GitHub repository -> Packages -> package -> Package settings -> Change visibility -> Public
+```
+
+If you keep the package private, log in to GHCR on EC2 before running Compose:
+
+```bash
+echo <github-token-with-read-packages> | docker login ghcr.io -u <github-username> --password-stdin
+```
 
 ## Configure
 
@@ -61,7 +82,7 @@ Edit `terraform.tfvars`:
 
 - `key_name`: existing EC2 key pair name.
 - `allowed_ssh_cidr`: your current public IP as a `/32`, or a narrow trusted CIDR.
-- `container_image`: backend image to run on EC2.
+- `container_image`: GitHub Container Registry image, for example `ghcr.io/<github-owner>/<github-repo>:latest`.
 - `domain_name`: DNS name nginx should serve. Leave empty to accept any host.
 
 Do not commit `terraform.tfvars`. It is ignored by git.
@@ -104,6 +125,14 @@ To update runtime settings:
 sudo nano /opt/<project>-<environment>/.env
 cd /opt/<project>-<environment>
 docker compose up -d
+```
+
+To deploy a new image after GitHub publishes it:
+
+```bash
+cd /opt/<project>-<environment>
+docker compose pull app
+docker compose up -d app
 ```
 
 ## Logs And Metrics

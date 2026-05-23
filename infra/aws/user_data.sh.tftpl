@@ -2,7 +2,12 @@
 set -euo pipefail
 
 dnf update -y
-dnf install -y docker docker-compose-plugin amazon-cloudwatch-agent openssl
+dnf install -y docker amazon-cloudwatch-agent openssl
+
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 systemctl enable docker
 systemctl start docker
@@ -10,6 +15,7 @@ systemctl start docker
 usermod -aG docker ec2-user
 
 mkdir -p ${app_directory}/nginx
+chown -R ec2-user:ec2-user ${app_directory}
 chmod 750 ${app_directory}
 
 if [ ! -f ${app_directory}/.env ]; then
@@ -57,6 +63,7 @@ APP_DESCRIPTION=Localized responses support en, kk, and ru through the Accept-La
 HEALTH_STATUS=ok
 ENV
   chmod 600 ${app_directory}/.env
+  chown ec2-user:ec2-user ${app_directory}/.env
 fi
 
 cat > ${app_directory}/docker-compose.yml <<'COMPOSE'
@@ -159,6 +166,8 @@ server {
     }
 }
 NGINX
+
+chown -R ec2-user:ec2-user ${app_directory}
 
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CWAGENT
 {
