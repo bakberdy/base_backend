@@ -1,0 +1,118 @@
+name: Deploy Backend App
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Environment to deploy"
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - development
+      image_tag:
+        description: "GHCR image tag to deploy"
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  PROJECT_NAME: ${{ vars.TF_PROJECT_NAME }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Find EC2 instance
+        id: instance
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+        run: |
+          set -euo pipefail
+          INSTANCE_ID="$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Project,Values=${PROJECT_NAME}" \
+              "Name=tag:Environment,Values=${TARGET_ENVIRONMENT}" \
+              "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' \
+            --output text)"
+          if [ -z "${INSTANCE_ID}" ] || [ "${INSTANCE_ID}" = "None" ]; then
+            echo "::error::No running EC2 instance found for Project=${PROJECT_NAME}, Environment=${TARGET_ENVIRONMENT}."
+            exit 1
+          fi
+          if [ "$(wc -w <<< "${INSTANCE_ID}")" -ne 1 ]; then
+            echo "::error::Expected one EC2 instance, found: ${INSTANCE_ID}"
+            exit 1
+          fi
+          echo "instance_id=${INSTANCE_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Deploy over AWS SSM
+        id: command
+        env:
+          INSTANCE_ID: ${{ steps.instance.outputs.instance_id }}
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+        run: |
+          set -euo pipefail
+          APP_DIRECTORY="/opt/${PROJECT_NAME}-${TARGET_ENVIRONMENT}"
+          CONTAINER_IMAGE="${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+          COMMANDS_JSON="$(jq -n \
+            --arg app_directory "${APP_DIRECTORY}" \
+            --arg container_image "${CONTAINER_IMAGE}" \
+            '{commands: [
+              "set -euo pipefail",
+              "cd " + $app_directory,
+              "test -f .env",
+              "if grep -q '\''^CONTAINER_IMAGE='\'' .env; then sed -i '\''s|^CONTAINER_IMAGE=.*|CONTAINER_IMAGE=" + $container_image + "|'\'' .env; else printf '\''\\nCONTAINER_IMAGE=" + $container_image + "\\n'\'' >> .env; fi",
+              "docker compose pull app",
+              "docker compose up -d app",
+              "docker compose ps app",
+              "docker compose logs --tail=80 app"
+            ]}')"
+          COMMAND_ID="$(aws ssm send-command \
+            --instance-ids "${INSTANCE_ID}" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy ${CONTAINER_IMAGE} to ${TARGET_ENVIRONMENT}" \
+            --parameters "${COMMANDS_JSON}" \
+            --query 'Command.CommandId' \
+            --output text)"
+          echo "command_id=${COMMAND_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Wait for deployment
+        env:
+          INSTANCE_ID: ${{ steps.instance.outputs.instance_id }}
+          COMMAND_ID: ${{ steps.command.outputs.command_id }}
+        run: |
+          set -euo pipefail
+          aws ssm wait command-executed \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${INSTANCE_ID}" || true
+          STATUS="$(aws ssm get-command-invocation \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${INSTANCE_ID}" \
+            --query 'Status' \
+            --output text)"
+          aws ssm get-command-invocation \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${INSTANCE_ID}" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}' \
+            --output text
+          if [ "${STATUS}" != "Success" ]; then
+            exit 1
+          fi

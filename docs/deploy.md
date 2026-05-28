@@ -50,6 +50,12 @@ config/run/config.development.env
 
 ## GitHub Analyzer
 
+Detailed GitHub Actions setup is documented in:
+
+```text
+.github/docs/github-actions.md
+```
+
 The analyzer workflow is:
 
 ```text
@@ -112,6 +118,71 @@ If the package is private, login on EC2:
 
 ```bash
 echo <github-token-with-read-packages> | sudo docker login ghcr.io -u <github-username> --password-stdin
+```
+
+## GitHub App Deploy
+
+The workflow is:
+
+```text
+.github/workflows/deploy-app.yml
+```
+
+It does not store app env files in GitHub. Each AWS environment keeps its own `.env` on the EC2 host:
+
+```text
+production  -> /opt/mobile-app-backend-production/.env
+development -> /opt/mobile-app-backend-development/.env
+```
+
+The workflow input `target_environment` selects which EC2 host to deploy by AWS tags:
+
+```text
+Project=mobile-app-backend
+Environment=production
+```
+
+or:
+
+```text
+Project=mobile-app-backend
+Environment=development
+```
+
+Deploy production:
+
+```text
+GitHub -> Actions -> Deploy Backend App -> Run workflow
+target_environment=production
+image_tag=latest
+```
+
+Deploy development:
+
+```text
+GitHub -> Actions -> Deploy Backend App -> Run workflow
+target_environment=development
+image_tag=latest
+```
+
+For exact deploys, use the immutable image tag from `publish-image.yml`:
+
+```text
+image_tag=sha-<commit-sha>
+```
+
+The workflow updates only `CONTAINER_IMAGE` in the selected server `.env`, then runs:
+
+```bash
+docker compose pull app
+docker compose up -d app
+```
+
+Run Terraform apply once per environment before using app deploy, because the EC2 instance profile needs AWS SSM permissions:
+
+```text
+GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=production -> apply=true
+GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=development -> apply=true
 ```
 
 ## AWS Production
@@ -240,27 +311,7 @@ Create an AWS IAM OIDC provider for GitHub, then create an IAM role that GitHub 
 }
 ```
 
-Add GitHub secret:
-
-```text
-AWS_ROLE_TO_ASSUME=arn:aws:iam::<account-id>:role/<github-actions-terraform-role>
-```
-
-Add GitHub repository variables:
-
-```text
-AWS_REGION=eu-central-1
-TF_PROJECT_NAME=mobile-app-backend
-TF_ENVIRONMENT=production
-TF_INSTANCE_TYPE=t3.micro
-TF_KEY_NAME=<existing-ec2-key-pair-name>
-TF_ALLOWED_SSH_CIDR=<your-ip-or-office-cidr>
-TF_PRODUCTION_VPC_CIDR=10.40.0.0/16
-TF_DEVELOPMENT_VPC_CIDR=10.41.0.0/16
-TF_PRODUCTION_DOMAIN_NAME=api.bakberdi.dev
-TF_DEVELOPMENT_DOMAIN_NAME=dev.bakberdi.dev
-TF_CERTIFICATE_EMAIL=admin@example.com
-```
+Add the GitHub Actions secret and repository variables from `.github/docs/github-actions.md`.
 
 The workflow uses Terraform workspaces named `production` and `development` so the two environments do not share the same state.
 
