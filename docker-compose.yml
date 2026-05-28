@@ -1,50 +1,116 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      timeout: 5s
-      retries: 10
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 5s
-      retries: 10
-
-  api:
-    build: .
-    ports:
-      - "8000:8000"
+  app:
+    image: ${CONTAINER_IMAGE:-mobile-app-backend:local}
+    restart: unless-stopped
+    env_file:
+      - ${APP_ENV_FILE:-.env}
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
       DATABASE_URL: ${POSTGRES_SCHEME}://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DOCKER_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       REDIS_URL: ${REDIS_SCHEME}://${REDIS_DOCKER_HOST}:${REDIS_PORT}/${REDIS_DB}
-    env_file:
-      - config/run/config.${ENVIRONMENT}.env
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    expose:
+      - "8000"
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ${APP_ENV_FILE:-.env}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
+      NGINX_SSL_CERTIFICATE: ${NGINX_SSL_CERTIFICATE:-/etc/nginx/self-signed/fullchain.pem}
+      NGINX_SSL_CERTIFICATE_KEY: ${NGINX_SSL_CERTIFICATE_KEY:-/etc/nginx/self-signed/privkey.pem}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        command -v openssl >/dev/null 2>&1 || apk add --no-cache openssl
+        mkdir -p "$$(dirname "$${NGINX_SSL_CERTIFICATE}")" "$$(dirname "$${NGINX_SSL_CERTIFICATE_KEY}")"
+        if [ ! -f "$${NGINX_SSL_CERTIFICATE}" ] || [ ! -f "$${NGINX_SSL_CERTIFICATE_KEY}" ]; then
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$${NGINX_SSL_CERTIFICATE_KEY}" \
+            -out "$${NGINX_SSL_CERTIFICATE}" \
+            -subj "/CN=$${DOMAIN_NAME}"
+        fi
+        envsubst '$${DOMAIN_NAME} $${NGINX_SSL_CERTIFICATE} $${NGINX_SSL_CERTIFICATE_KEY}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+        nginx -g 'daemon off;'
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - certbot_www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt
+      - nginx_logs:/var/log/nginx
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - tools
+    volumes:
+      - certbot_www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
 
 volumes:
-  pgdata:
-    name: mobile_app_backend_${ENVIRONMENT}_pgdata
-  redisdata:
-    name: mobile_app_backend_${ENVIRONMENT}_redisdata
+  postgres_data:
+  redis_data:
+  nginx_logs:
+  certbot_www:
+  letsencrypt:

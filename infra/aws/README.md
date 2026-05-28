@@ -110,7 +110,9 @@ Bootstrap creates `/opt/<project>-<environment>` with:
 
 - `.env`
 - `docker-compose.yml`
-- `nginx/default.conf`
+- `nginx/default.conf.template`
+
+The EC2 `docker-compose.yml` is copied from the repository root `docker-compose.yml`. Local development and EC2 use the same Compose file; only the env source and `CONTAINER_IMAGE` value differ.
 
 The `.env` file is generated on the instance with random `JWT_SECRET_KEY` and `POSTGRES_PASSWORD`. It is not stored in Terraform files or git.
 
@@ -140,7 +142,9 @@ docker compose up -d app
 
 ## HTTPS
 
-When `domain_name` is set and points to the instance Elastic IP, bootstrap uses the Compose `certbot` service to issue a Let's Encrypt certificate. Nginx first serves HTTP for the ACME challenge, then the bootstrap rewrites `nginx/default.conf` to redirect HTTP to HTTPS and serve the backend on `443`.
+Nginx uses the shared repository template `nginx/default.conf.template` locally and on EC2. The same config redirects HTTP to HTTPS and serves the backend on `443`.
+
+Before Let's Encrypt certs exist, nginx creates a temporary self-signed certificate so the container can start with the same HTTPS config. When `domain_name` is set and points to the instance Elastic IP, bootstrap uses the Compose `certbot` service to issue a Let's Encrypt certificate, updates the EC2 `.env` certificate paths, and restarts nginx.
 
 Certificate files live in the Docker volume named `letsencrypt`. A daily cron job renews certificates and reloads nginx.
 

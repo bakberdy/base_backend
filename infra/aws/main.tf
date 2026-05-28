@@ -165,7 +165,9 @@ resource "aws_instance" "app" {
     cloudwatch_log_group = aws_cloudwatch_log_group.app.name
     container_image      = var.container_image
     domain_name          = local.domain_name
+    docker_compose       = file("${path.module}/../../docker-compose.yml")
     environment          = var.environment
+    nginx_config         = file("${path.module}/../../nginx/default.conf.template")
   })
 
   tags = merge(local.common_tags, {
