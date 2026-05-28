@@ -2,11 +2,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from redis.asyncio import Redis
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from starlette.requests import Request
-from starlette.responses import Response
-from starlette.types import HTTPExceptionHandler
 
 from app.common.exceptions.handlers import register_exception_handlers
 from app.core.config import get_settings
@@ -16,14 +11,6 @@ from app.core.middleware import configure_openapi, register_middlewares
 from app.core.security import limiter
 from app.modules.auth.api.router import router as auth_router
 from app.modules.users.api.router import router as users_router
-
-
-def rate_limit_exceeded_handler(request: Request, exc: Exception) -> Response:
-    assert isinstance(exc, RateLimitExceeded)
-    return _rate_limit_exceeded_handler(request, exc)
-
-
-rate_limit_handler: HTTPExceptionHandler = rate_limit_exceeded_handler
 
 
 @asynccontextmanager
@@ -75,7 +62,6 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {"status": settings.health_status, "environment": settings.environment}
 
-    application.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     register_middlewares(
         application,
         cors_allowed_origins=settings.cors_origins,

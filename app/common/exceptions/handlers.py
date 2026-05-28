@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.exceptions.base import ApplicationError
@@ -228,6 +229,31 @@ async def validation_exception_handler(request: Request, exc: Exception) -> JSON
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
 
+async def rate_limit_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, RateLimitExceeded)
+    logger.info(
+        "rate_limit_exceeded method=%s path=%s limit=%s request_id=%s",
+        request.method,
+        request.url.path,
+        exc.detail,
+        get_request_id(),
+    )
+    body = _localized_response(
+        ErrorResponse(
+            message="too_many_attempts",
+            code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details=ErrorDetails(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                type=ErrorType.SNACKBAR,
+            ),
+        ),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        content=body.model_dump(mode="json"),
+    )
+
+
 async def unhandled_exception_handler(request: Request, _exc: Exception) -> JSONResponse:
     logger.exception(
         "unhandled_server_error method=%s path=%s request_id=%s",
@@ -247,6 +273,7 @@ async def unhandled_exception_handler(request: Request, _exc: Exception) -> JSON
 
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ApplicationError, application_exception_handler)
+    app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)
