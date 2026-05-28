@@ -1,0 +1,40 @@
+name: analyzer-check
+
+on:
+  workflow_call:
+
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: analyzer-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m mypy
+
+      - name: Report success-analyze
+        if: success()
+        run: |
+          echo "## success-analyze" >> "$GITHUB_STEP_SUMMARY"
+          echo "Python analyzer completed with no failing errors." >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::success-analyze — analyzer passed"

@@ -14,7 +14,11 @@ permissions:
   packages: write
 
 jobs:
+  analyze:
+    uses: ./.github/workflows/analyzer-check.yml
+
   publish:
+    needs: analyze
     runs-on: ubuntu-latest
 
     steps:
