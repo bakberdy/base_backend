@@ -36,10 +36,58 @@ Run tests:
 make test
 ```
 
+Run the same analyzer used by GitHub:
+
+```bash
+.venv/bin/python -m mypy
+```
+
 Local env file:
 
 ```text
 config/run/config.development.env
+```
+
+## GitHub Analyzer
+
+The analyzer workflow is:
+
+```text
+.github/workflows/analyzer-check.yml
+```
+
+It runs automatically for pull requests with these actions:
+
+```text
+opened, synchronize, reopened, ready_for_review
+```
+
+It also supports `workflow_call`, so other workflows can reuse the same check before publishing or deploying.
+
+The workflow does this:
+
+```text
+checkout repo
+set up Python 3.13
+install requirements.txt
+run python -m mypy
+write success-analyze to the GitHub summary
+```
+
+Use it locally before pushing backend code changes:
+
+```bash
+cd backend
+make install
+.venv/bin/python -m mypy
+```
+
+If GitHub fails with an import error that does not fail locally, first check that the dependency is listed in `requirements.txt`, then rerun the same command with a clean environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m mypy
 ```
 
 ## GitHub Image
@@ -49,6 +97,16 @@ Push to GitHub. The workflow publishes:
 ```text
 ghcr.io/<github-owner>/<github-repo>:latest
 ```
+
+The workflow is:
+
+```text
+.github/workflows/publish-image.yml
+```
+
+It runs on pushes to `main` or `master`, tags matching `v*`, and manual dispatch.
+
+Before the Docker image is built and pushed, `publish-image.yml` calls `analyzer-check.yml`. If `python -m mypy` fails, the image is not published.
 
 If the package is private, login on EC2:
 
