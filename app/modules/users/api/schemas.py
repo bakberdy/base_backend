@@ -8,6 +8,8 @@ from app.modules.users.application.dto import UserDto
 from app.modules.users.application.dto import UserPreferencesDto, UserProfileDto
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
+_PHONE_NUMBER_PATTERN = r"^\+[1-9]\d{7,14}$"
+
 
 class UserListRequest(BaseListRequest):
     status: UserStatus | None = None
@@ -46,12 +48,12 @@ class UpdateUserStatusRequest(BaseModel):
 
 class CreateUserProfileRequest(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=255)
-    phone_number: str | None = Field(None, min_length=3, max_length=32)
+    phone_number: str | None = Field(None, pattern=_PHONE_NUMBER_PATTERN)
 
 
 class UpdateUserProfileRequest(BaseModel):
     full_name: str | None = Field(None, min_length=1, max_length=255)
-    phone_number: str | None = Field(None, min_length=3, max_length=32)
+    phone_number: str | None = Field(None, pattern=_PHONE_NUMBER_PATTERN)
 
     @model_validator(mode="after")
     def ensure_any_field(self) -> "UpdateUserProfileRequest":
