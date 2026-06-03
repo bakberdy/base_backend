@@ -12,6 +12,7 @@ from app.modules.users.api.dependencies import (
     CreateUserPreferencesUseCaseDep,
     CreateUserProfileUseCaseDep,
     GetCurrentUserUseCaseDep,
+    GetCurrentUserProfileUseCaseDep,
     GetUserPreferencesUseCaseDep,
     GetUserByIdUseCaseDep,
     GetUsersUseCaseDep,
@@ -84,6 +85,14 @@ async def users_list(
 @router.get("/me", response_model=UserResponse)
 async def users_me(user_id: CurrentUserIdDep, use_case: GetCurrentUserUseCaseDep) -> UserResponse:
     return UserResponse.from_dto(await use_case.execute(user_id))
+
+
+@router.get("/me/profile", response_model=UserProfileResponse)
+async def users_me_profile(
+    user_id: CurrentUserIdDep,
+    use_case: GetCurrentUserProfileUseCaseDep,
+) -> UserProfileResponse:
+    return UserProfileResponse.from_dto(await use_case.execute(user_id))
 
 
 @router.post("/me/profile", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)

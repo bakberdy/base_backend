@@ -42,6 +42,36 @@ def test_users_me_requires_auth_and_returns_current_user(
     assert body["is_user_data_uploaded"] is False
 
 
+def test_users_me_profile_requires_auth_and_returns_profile(
+    integration_client: TestClient,
+    integration_settings: Any,
+) -> None:
+    user = create_authenticated_user(integration_client, integration_settings)
+
+    missing_response = integration_client.get(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+    )
+    assert missing_response.status_code == 404
+
+    created_response = integration_client.post(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+        json={"full_name": "John Smith", "phone_number": "+77001234567"},
+    )
+    assert created_response.status_code == 201
+
+    profile_response = integration_client.get(
+        "/users/me/profile",
+        headers=auth_headers(user.access_token),
+    )
+    assert profile_response.status_code == 200
+    profile_body = profile_response.json()
+    assert profile_body["full_name"] == "John Smith"
+    assert profile_body["phone_number"] == "+77001234567"
+    assert profile_body["completed_at"] is not None
+
+
 def test_profile_preferences_and_delete_request_flow(
     integration_client: TestClient,
     integration_settings: Any,

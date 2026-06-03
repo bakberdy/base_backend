@@ -12,6 +12,7 @@ from app.modules.users.application.use_cases.change_user_status import ChangeUse
 from app.modules.users.application.use_cases.create_user_preferences import CreateUserPreferencesUseCase
 from app.modules.users.application.use_cases.create_user_profile import CreateUserProfileUseCase
 from app.modules.users.application.use_cases.get_current_user import GetCurrentUserUseCase
+from app.modules.users.application.use_cases.get_current_user_profile import GetCurrentUserProfileUseCase
 from app.modules.users.application.use_cases.get_user_preferences import GetUserPreferencesUseCase
 from app.modules.users.application.use_cases.get_user_by_id import GetUserByIdUseCase
 from app.modules.users.application.use_cases.get_users import GetUsersUseCase
@@ -48,6 +49,12 @@ def get_user_by_id_use_case(repo: UserRepository = Depends(get_user_repository))
 
 def get_current_user_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetCurrentUserUseCase:
     return GetCurrentUserUseCase(repo)
+
+
+def get_current_user_profile_use_case(
+    repo: UserRepository = Depends(get_user_repository),
+) -> GetCurrentUserProfileUseCase:
+    return GetCurrentUserProfileUseCase(repo)
 
 
 def change_user_role_use_case(
@@ -130,6 +137,10 @@ def approve_user_deletion_request_use_case(
 GetUsersUseCaseDep = Annotated[GetUsersUseCase, Depends(get_users_use_case)]
 GetUserByIdUseCaseDep = Annotated[GetUserByIdUseCase, Depends(get_user_by_id_use_case)]
 GetCurrentUserUseCaseDep = Annotated[GetCurrentUserUseCase, Depends(get_current_user_use_case)]
+GetCurrentUserProfileUseCaseDep = Annotated[
+    GetCurrentUserProfileUseCase,
+    Depends(get_current_user_profile_use_case),
+]
 ChangeUserRoleUseCaseDep = Annotated[ChangeUserRoleUseCase, Depends(change_user_role_use_case)]
 ChangeUserStatusUseCaseDep = Annotated[ChangeUserStatusUseCase, Depends(change_user_status_use_case)]
 CreateUserProfileUseCaseDep = Annotated[CreateUserProfileUseCase, Depends(create_user_profile_use_case)]
