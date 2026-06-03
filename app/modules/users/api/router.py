@@ -34,6 +34,7 @@ from app.modules.users.api.schemas import (
     UserProfileResponse,
     UserResponse,
 )
+from app.modules.users.domain.entities import PhoneNumber
 from app.modules.users.domain.enums import UserStatus
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -101,7 +102,18 @@ async def users_create_profile(
     body: CreateUserProfileRequest,
     use_case: CreateUserProfileUseCaseDep,
 ) -> UserProfileResponse:
-    result = await use_case.execute(user_id, full_name=body.full_name, phone_number=body.phone_number)
+    result = await use_case.execute(
+        user_id,
+        full_name=body.full_name,
+        phone_number=(
+            None
+            if body.phone_number is None
+            else PhoneNumber(
+                dial_code=body.phone_number.dial_code,
+                number=body.phone_number.number,
+            )
+        ),
+    )
     return UserProfileResponse.from_dto(result)
 
 
@@ -114,7 +126,14 @@ async def users_update_profile(
     result = await use_case.execute(
         user_id,
         full_name=body.full_name if "full_name" in body.model_fields_set else None,
-        phone_number=body.phone_number if "phone_number" in body.model_fields_set else None,
+        phone_number=(
+            None
+            if body.phone_number is None
+            else PhoneNumber(
+                dial_code=body.phone_number.dial_code,
+                number=body.phone_number.number,
+            )
+        ),
     )
     return UserProfileResponse.from_dto(result)
 

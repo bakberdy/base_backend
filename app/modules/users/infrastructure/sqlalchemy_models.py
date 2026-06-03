@@ -40,6 +40,7 @@ class UserProfileModel(Base):
         primary_key=True,
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    dial_code: Mapped[str | None] = mapped_column(String(8), nullable=True, index=True)
     phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     avatar_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)

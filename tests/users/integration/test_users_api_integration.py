@@ -57,7 +57,10 @@ def test_users_me_profile_requires_auth_and_returns_profile(
     created_response = integration_client.post(
         "/users/me/profile",
         headers=auth_headers(user.access_token),
-        json={"full_name": "John Smith", "phone_number": "+77001234567"},
+        json={
+            "full_name": "John Smith",
+            "phone_number": {"dial_code": "+7", "number": "7001234567"},
+        },
     )
     assert created_response.status_code == 201
 
@@ -68,7 +71,8 @@ def test_users_me_profile_requires_auth_and_returns_profile(
     assert profile_response.status_code == 200
     profile_body = profile_response.json()
     assert profile_body["full_name"] == "John Smith"
-    assert profile_body["phone_number"] == "+77001234567"
+    assert profile_body["phone_number"]["dial_code"] == "+7"
+    assert profile_body["phone_number"]["number"] == "7001234567"
     assert profile_body["completed_at"] is not None
 
 
@@ -81,28 +85,34 @@ def test_users_me_profile_rejects_invalid_phone_number_format(
     create_response = integration_client.post(
         "/users/me/profile",
         headers=auth_headers(user.access_token),
-        json={"full_name": "John Smith", "phone_number": "+7 700 123 45 67"},
+        json={
+            "full_name": "John Smith",
+            "phone_number": {"dial_code": "+7", "number": "7 700 123 45 67"},
+        },
     )
     assert create_response.status_code == 422
     create_body = create_response.json()
     assert create_body["code"] == 422
-    assert create_body["details"]["field_errors"][0]["field_name"] == "phone_number"
+    assert create_body["details"]["field_errors"][0]["field_name"] == "phone_number.number"
 
     valid_profile_response = integration_client.post(
         "/users/me/profile",
         headers=auth_headers(user.access_token),
-        json={"full_name": "John Smith", "phone_number": "+77001234567"},
+        json={
+            "full_name": "John Smith",
+            "phone_number": {"dial_code": "+7", "number": "7001234567"},
+        },
     )
     assert valid_profile_response.status_code == 201
 
     update_response = integration_client.patch(
         "/users/me/profile",
         headers=auth_headers(user.access_token),
-        json={"phone_number": "77001234567"},
+        json={"phone_number": {"dial_code": "+7", "number": "77012345"}},
     )
     assert update_response.status_code == 422
     update_body = update_response.json()
-    assert update_body["details"]["field_errors"][0]["field_name"] == "phone_number"
+    assert update_body["details"]["field_errors"][0]["field_name"] == "phone_number.number"
 
 
 def test_profile_preferences_and_delete_request_flow(
@@ -114,11 +124,16 @@ def test_profile_preferences_and_delete_request_flow(
     profile_response = integration_client.post(
         "/users/me/profile",
         headers=auth_headers(user.access_token),
-        json={"full_name": "John Smith", "phone_number": "+77001234567"},
+        json={
+            "full_name": "John Smith",
+            "phone_number": {"dial_code": "+7", "number": "7001234567"},
+        },
     )
     assert profile_response.status_code == 201
     profile_body = profile_response.json()
     assert profile_body["full_name"] == "John Smith"
+    assert profile_body["phone_number"]["dial_code"] == "+7"
+    assert profile_body["phone_number"]["number"] == "7001234567"
     assert profile_body["completed_at"] is not None
 
     current_user_response = integration_client.get("/users/me", headers=auth_headers(user.access_token))

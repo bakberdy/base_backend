@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.pagination.schemas import SortingMethod
 from app.common.pagination.sqlalchemy import apply_sorting, model_sort_columns
-from app.modules.users.domain.entities import User, UserPreferences, UserProfile
+from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.repositories import UserRepository
 from app.modules.users.infrastructure.sqlalchemy_models import UserModel, UserPreferencesModel, UserProfileModel
@@ -29,13 +29,23 @@ def _profile_entity(model: UserProfileModel) -> UserProfile:
     return UserProfile(
         user_id=model.user_id,
         full_name=model.full_name,
-        phone_number=model.phone_number,
+        phone_number=_phone_number_entity(model.dial_code, model.phone_number),
         avatar_url=model.avatar_url,
         avatar_object_key=model.avatar_object_key,
         created_at=model.created_at,
         updated_at=model.updated_at,
         completed_at=model.completed_at,
     )
+
+
+def _phone_number_entity(dial_code: str | None, number: str | None) -> PhoneNumber | None:
+    if dial_code is None or number is None:
+        return None
+    if not dial_code.startswith('+'):
+        return None
+    if not number.isdigit():
+        return None
+    return PhoneNumber(dial_code=dial_code, number=number)
 
 
 def _preferences_entity(model: UserPreferencesModel) -> UserPreferences:
@@ -188,13 +198,14 @@ class SqlAlchemyUserRepository(UserRepository):
         *,
         user_id: UUID,
         full_name: str,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile:
         row = UserProfileModel(
             user_id=user_id,
             full_name=full_name,
-            phone_number=phone_number,
+            dial_code=phone_number.dial_code if phone_number is not None else None,
+            phone_number=phone_number.number if phone_number is not None else None,
             avatar_url=None,
             avatar_object_key=None,
             created_at=now,
@@ -210,7 +221,7 @@ class SqlAlchemyUserRepository(UserRepository):
         *,
         user_id: UUID,
         full_name: str | None,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile | None:
         result = await self._session.execute(select(UserProfileModel).where(UserProfileModel.user_id == user_id))
@@ -220,7 +231,8 @@ class SqlAlchemyUserRepository(UserRepository):
         if full_name is not None:
             row.full_name = full_name
         if phone_number is not None:
-            row.phone_number = phone_number
+            row.dial_code = phone_number.dial_code
+            row.phone_number = phone_number.number
         row.updated_at = now
         if row.completed_at is None:
             row.completed_at = now

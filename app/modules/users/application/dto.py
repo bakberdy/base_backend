@@ -4,7 +4,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.common.pagination.schemas import PaginationMeta
-from app.modules.users.domain.entities import User, UserPreferences, UserProfile
+from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 
@@ -47,7 +47,7 @@ class UsersPageDto:
 class UserProfileDto:
     user_id: UUID
     full_name: str
-    phone_number: str | None
+    phone_number: PhoneNumber | None
     avatar_url: str | None
     created_at: datetime
     updated_at: datetime

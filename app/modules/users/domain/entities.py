@@ -17,10 +17,16 @@ class User:
 
 
 @dataclass(slots=True)
+class PhoneNumber:
+    dial_code: str
+    number: str
+
+
+@dataclass(slots=True)
 class UserProfile:
     user_id: UUID
     full_name: str
-    phone_number: str | None
+    phone_number: PhoneNumber | None
     avatar_url: str | None
     avatar_object_key: str | None
     created_at: datetime

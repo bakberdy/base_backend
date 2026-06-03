@@ -9,6 +9,8 @@ from app.modules.users.application.dto import UserPreferencesDto, UserProfileDto
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 _PHONE_NUMBER_PATTERN = r"^\+[1-9]\d{7,14}$"
+_DIAL_CODE_PATTERN = r"^\+[1-9]\d{0,3}$"
+_LOCAL_PHONE_NUMBER_PATTERN = r"^\d{10}$"
 
 
 class UserListRequest(BaseListRequest):
@@ -46,14 +48,19 @@ class UpdateUserStatusRequest(BaseModel):
     status: UserStatus
 
 
+class PhoneNumberRequest(BaseModel):
+    dial_code: str = Field(..., pattern=_DIAL_CODE_PATTERN)
+    number: str = Field(..., pattern=_LOCAL_PHONE_NUMBER_PATTERN)
+
+
 class CreateUserProfileRequest(BaseModel):
     full_name: str = Field(..., min_length=1, max_length=255)
-    phone_number: str | None = Field(None, pattern=_PHONE_NUMBER_PATTERN)
+    phone_number: PhoneNumberRequest | None = None
 
 
 class UpdateUserProfileRequest(BaseModel):
     full_name: str | None = Field(None, min_length=1, max_length=255)
-    phone_number: str | None = Field(None, pattern=_PHONE_NUMBER_PATTERN)
+    phone_number: PhoneNumberRequest | None = None
 
     @model_validator(mode="after")
     def ensure_any_field(self) -> "UpdateUserProfileRequest":
@@ -65,7 +72,7 @@ class UpdateUserProfileRequest(BaseModel):
 class UserProfileResponse(BaseModel):
     user_id: UUID
     full_name: str
-    phone_number: str | None
+    phone_number: PhoneNumberRequest | None
     avatar_url: str | None
     created_at: datetime
     updated_at: datetime
@@ -76,7 +83,14 @@ class UserProfileResponse(BaseModel):
         return cls(
             user_id=dto.user_id,
             full_name=dto.full_name,
-            phone_number=dto.phone_number,
+            phone_number=(
+                None
+                if dto.phone_number is None
+                else PhoneNumberRequest(
+                    dial_code=dto.phone_number.dial_code,
+                    number=dto.phone_number.number,
+                )
+            ),
             avatar_url=dto.avatar_url,
             created_at=dto.created_at,
             updated_at=dto.updated_at,

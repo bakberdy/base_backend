@@ -3,7 +3,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.common.pagination.schemas import SortingMethod
-from app.modules.users.domain.entities import User, UserPreferences, UserProfile
+from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 
@@ -47,7 +47,7 @@ class UserRepository(Protocol):
         *,
         user_id: UUID,
         full_name: str,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile: ...
 
@@ -56,7 +56,7 @@ class UserRepository(Protocol):
         *,
         user_id: UUID,
         full_name: str | None,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile | None: ...
 

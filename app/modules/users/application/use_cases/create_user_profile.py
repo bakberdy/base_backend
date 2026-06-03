@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.modules.users.application.dto import UnitOfWork, UserProfileDto
 from app.modules.users.domain.enums import UserStatus
+from app.modules.users.domain.entities import PhoneNumber
 from app.modules.users.domain.exceptions import (
     ForbiddenUserActionError,
     UserNotFoundError,
@@ -16,7 +17,13 @@ class CreateUserProfileUseCase:
         self._users = user_repository
         self._unit_of_work = unit_of_work
 
-    async def execute(self, user_id: UUID, *, full_name: str, phone_number: str | None) -> UserProfileDto:
+    async def execute(
+        self,
+        user_id: UUID,
+        *,
+        full_name: str,
+        phone_number: PhoneNumber | None,
+    ) -> UserProfileDto:
         user = await self._users.get_by_id(user_id)
         if user is None:
             raise UserNotFoundError()

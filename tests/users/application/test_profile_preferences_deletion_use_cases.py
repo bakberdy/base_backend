@@ -16,7 +16,7 @@ from app.modules.users.application.use_cases.request_account_deletion import Req
 from app.modules.users.application.use_cases.remove_user_avatar import RemoveUserAvatarUseCase
 from app.modules.users.application.use_cases.update_user_avatar import UpdateUserAvatarUseCase
 from app.modules.users.application.use_cases.update_user_preferences import UpdateUserPreferencesUseCase
-from app.modules.users.domain.entities import User, UserPreferences, UserProfile
+from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.exceptions import (
     InvalidAvatarUploadError,
@@ -130,7 +130,7 @@ class UserRepositorySpy:
         *,
         user_id: UUID,
         full_name: str,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile:
         profile = UserProfile(
@@ -151,7 +151,7 @@ class UserRepositorySpy:
         *,
         user_id: UUID,
         full_name: str | None,
-        phone_number: str | None,
+        phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile | None:
         raise NotImplementedError
@@ -282,13 +282,21 @@ def test_create_profile_marks_initial_user_data_uploaded_and_rejects_duplicate()
         unit_of_work = UnitOfWorkSpy()
         use_case = CreateUserProfileUseCase(repo, unit_of_work)
 
-        profile = await use_case.execute(user.id, full_name="John Smith", phone_number="+77001234567")
+        profile = await use_case.execute(
+            user.id,
+            full_name="John Smith",
+            phone_number=PhoneNumber(dial_code="+7", number="7001234567"),
+        )
 
         assert profile.full_name == "John Smith"
         assert profile.completed_at is not None
         assert unit_of_work.commits == 1
         with pytest.raises(UserProfileAlreadyExistsError):
-            await use_case.execute(user.id, full_name="John Smith", phone_number=None)
+            await use_case.execute(
+                user.id,
+                full_name="John Smith",
+                phone_number=None,
+            )
 
     asyncio.run(scenario())
 

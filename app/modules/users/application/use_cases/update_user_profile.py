@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.modules.users.application.dto import UnitOfWork, UserProfileDto
+from app.modules.users.domain.entities import PhoneNumber
 from app.modules.users.domain.enums import UserStatus
 from app.modules.users.domain.exceptions import ForbiddenUserActionError, UserNotFoundError, UserProfileNotFoundError
 from app.modules.users.domain.repositories import UserRepository
@@ -17,7 +18,7 @@ class UpdateUserProfileUseCase:
         user_id: UUID,
         *,
         full_name: str | None = None,
-        phone_number: str | None = None,
+        phone_number: PhoneNumber | None = None,
     ) -> UserProfileDto:
         user = await self._users.get_by_id(user_id)
         if user is None:
