@@ -93,8 +93,8 @@ def test_auth_flow_rotates_refresh_token_and_revokes_reused_token(
         "/users/me",
         headers=auth_headers(str(second_pair["access_token"])),
     )
-    assert revoked_access_response.status_code == 410
-    assert revoked_access_response.json()["code"] == 410
+    assert revoked_access_response.status_code == 401
+    assert revoked_access_response.json()["code"] == 401
 
 
 def test_login_validation_error_is_localized_at_api_boundary(
@@ -212,13 +212,13 @@ def test_session_endpoints_and_device_notifications_work_with_real_persistence(
         f"/auth/sessions/{session_id}",
         headers=auth_headers(user.access_token),
     )
-    assert already_revoked_response.status_code == 410
+    assert already_revoked_response.status_code == 401
 
     revoked_access_response = integration_client.get(
         "/users/me",
         headers=auth_headers(user.access_token),
     )
-    assert revoked_access_response.status_code == 410
+    assert revoked_access_response.status_code == 401
 
 
 def test_revoke_all_sessions_and_logout_revoke_access(
