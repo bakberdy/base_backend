@@ -17,6 +17,8 @@ services:
       - "8000"
     ports:
       - "${APP_PORT:-8000}:8000"
+    volumes:
+      - uploads_data:/app/uploads
     logging:
       driver: json-file
       options:
@@ -112,5 +114,6 @@ volumes:
   postgres_data:
   redis_data:
   nginx_logs:
+  uploads_data:
   certbot_www:
   letsencrypt:

@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 
 from app.common.exceptions.handlers import register_exception_handlers
@@ -68,6 +70,9 @@ def create_app() -> FastAPI:
         cors_allow_credentials=settings.cors_allow_credentials,
     )
     register_exception_handlers(application)
+    uploads_dir = Path("uploads")
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    application.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
     application.include_router(auth_router)
     application.include_router(users_router)
     configure_openapi(application)
