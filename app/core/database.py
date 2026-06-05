@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 from typing import Protocol
 
 from fastapi import Request
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -54,3 +55,20 @@ async def create_tables(engine: AsyncEngine) -> None:
     load_model_metadata()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_ensure_user_profiles_phone_columns)
+
+
+def _ensure_user_profiles_phone_columns(connection) -> None:
+    inspector = inspect(connection)
+    if "user_profiles" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("user_profiles")}
+    missing_columns = {
+        "country_code": "VARCHAR(2)",
+        "dial_code": "VARCHAR(8)",
+        "phone_number": "VARCHAR(32)",
+    }.items()
+    for name, column_type in missing_columns:
+        if name not in columns:
+            connection.execute(text(f"ALTER TABLE user_profiles ADD COLUMN {name} {column_type}"))

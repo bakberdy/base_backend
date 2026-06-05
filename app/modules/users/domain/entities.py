@@ -18,6 +18,7 @@ class User:
 
 @dataclass(slots=True)
 class PhoneNumber:
+    country_code: str | None
     dial_code: str
     number: str
 

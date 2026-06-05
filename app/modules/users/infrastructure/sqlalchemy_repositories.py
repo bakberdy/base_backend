@@ -29,7 +29,7 @@ def _profile_entity(model: UserProfileModel) -> UserProfile:
     return UserProfile(
         user_id=model.user_id,
         full_name=model.full_name,
-        phone_number=_phone_number_entity(model.dial_code, model.phone_number),
+        phone_number=_phone_number_entity(model.country_code, model.dial_code, model.phone_number),
         avatar_url=model.avatar_url,
         avatar_object_key=model.avatar_object_key,
         created_at=model.created_at,
@@ -38,14 +38,18 @@ def _profile_entity(model: UserProfileModel) -> UserProfile:
     )
 
 
-def _phone_number_entity(dial_code: str | None, number: str | None) -> PhoneNumber | None:
+def _phone_number_entity(
+    country_code: str | None,
+    dial_code: str | None,
+    number: str | None,
+) -> PhoneNumber | None:
     if dial_code is None or number is None:
         return None
     if not dial_code.startswith('+'):
         return None
     if not number.isdigit():
         return None
-    return PhoneNumber(dial_code=dial_code, number=number)
+    return PhoneNumber(country_code=country_code, dial_code=dial_code, number=number)
 
 
 def _preferences_entity(model: UserPreferencesModel) -> UserPreferences:
@@ -204,6 +208,7 @@ class SqlAlchemyUserRepository(UserRepository):
         row = UserProfileModel(
             user_id=user_id,
             full_name=full_name,
+            country_code=phone_number.country_code if phone_number is not None else None,
             dial_code=phone_number.dial_code if phone_number is not None else None,
             phone_number=phone_number.number if phone_number is not None else None,
             avatar_url=None,
@@ -231,6 +236,7 @@ class SqlAlchemyUserRepository(UserRepository):
         if full_name is not None:
             row.full_name = full_name
         if phone_number is not None:
+            row.country_code = phone_number.country_code
             row.dial_code = phone_number.dial_code
             row.phone_number = phone_number.number
         row.updated_at = now

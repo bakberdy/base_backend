@@ -10,6 +10,7 @@ from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, U
 
 _PHONE_NUMBER_PATTERN = r"^\+[1-9]\d{7,14}$"
 _DIAL_CODE_PATTERN = r"^\+[1-9]\d{0,3}$"
+_COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 _LOCAL_PHONE_NUMBER_PATTERN = r"^\d{10}$"
 
 
@@ -49,6 +50,7 @@ class UpdateUserStatusRequest(BaseModel):
 
 
 class PhoneNumberRequest(BaseModel):
+    country_code: str | None = Field(None, pattern=_COUNTRY_CODE_PATTERN)
     dial_code: str = Field(..., pattern=_DIAL_CODE_PATTERN)
     number: str = Field(..., pattern=_LOCAL_PHONE_NUMBER_PATTERN)
 
@@ -87,6 +89,7 @@ class UserProfileResponse(BaseModel):
                 None
                 if dto.phone_number is None
                 else PhoneNumberRequest(
+                    country_code=dto.phone_number.country_code,
                     dial_code=dto.phone_number.dial_code,
                     number=dto.phone_number.number,
                 )

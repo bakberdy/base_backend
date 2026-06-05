@@ -109,6 +109,7 @@ async def users_create_profile(
             None
             if body.phone_number is None
             else PhoneNumber(
+                country_code=body.phone_number.country_code,
                 dial_code=body.phone_number.dial_code,
                 number=body.phone_number.number,
             )
@@ -130,6 +131,7 @@ async def users_update_profile(
             None
             if body.phone_number is None
             else PhoneNumber(
+                country_code=body.phone_number.country_code,
                 dial_code=body.phone_number.dial_code,
                 number=body.phone_number.number,
             )

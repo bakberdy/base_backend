@@ -285,7 +285,7 @@ def test_create_profile_marks_initial_user_data_uploaded_and_rejects_duplicate()
         profile = await use_case.execute(
             user.id,
             full_name="John Smith",
-            phone_number=PhoneNumber(dial_code="+7", number="7001234567"),
+            phone_number=PhoneNumber(country_code="KZ", dial_code="+7", number="7001234567"),
         )
 
         assert profile.full_name == "John Smith"
