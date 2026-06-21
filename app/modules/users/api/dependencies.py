@@ -15,6 +15,7 @@ from app.modules.users.application.use_cases.get_current_user import GetCurrentU
 from app.modules.users.application.use_cases.get_current_user_profile import GetCurrentUserProfileUseCase
 from app.modules.users.application.use_cases.get_user_preferences import GetUserPreferencesUseCase
 from app.modules.users.application.use_cases.get_user_by_id import GetUserByIdUseCase
+from app.modules.users.application.use_cases.get_user_profile_by_id import GetUserProfileByIdUseCase
 from app.modules.users.application.use_cases.get_users import GetUsersUseCase
 from app.modules.users.application.use_cases.request_account_deletion import RequestAccountDeletionUseCase
 from app.modules.users.application.use_cases.remove_user_avatar import RemoveUserAvatarUseCase
@@ -45,6 +46,12 @@ def get_users_use_case(repo: UserRepository = Depends(get_user_repository)) -> G
 
 def get_user_by_id_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetUserByIdUseCase:
     return GetUserByIdUseCase(repo)
+
+
+def get_user_profile_by_id_use_case(
+    repo: UserRepository = Depends(get_user_repository),
+) -> GetUserProfileByIdUseCase:
+    return GetUserProfileByIdUseCase(repo)
 
 
 def get_current_user_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetCurrentUserUseCase:
@@ -136,6 +143,10 @@ def approve_user_deletion_request_use_case(
 
 GetUsersUseCaseDep = Annotated[GetUsersUseCase, Depends(get_users_use_case)]
 GetUserByIdUseCaseDep = Annotated[GetUserByIdUseCase, Depends(get_user_by_id_use_case)]
+GetUserProfileByIdUseCaseDep = Annotated[
+    GetUserProfileByIdUseCase,
+    Depends(get_user_profile_by_id_use_case),
+]
 GetCurrentUserUseCaseDep = Annotated[GetCurrentUserUseCase, Depends(get_current_user_use_case)]
 GetCurrentUserProfileUseCaseDep = Annotated[
     GetCurrentUserProfileUseCase,

@@ -15,6 +15,7 @@ from app.modules.users.api.dependencies import (
     GetCurrentUserProfileUseCaseDep,
     GetUserPreferencesUseCaseDep,
     GetUserByIdUseCaseDep,
+    GetUserProfileByIdUseCaseDep,
     GetUsersUseCaseDep,
     RequestAccountDeletionUseCaseDep,
     RemoveUserAvatarUseCaseDep,
@@ -226,6 +227,20 @@ async def users_get(
     use_case: GetUserByIdUseCaseDep,
 ) -> UserResponse:
     return UserResponse.from_dto(await use_case.execute(current_user_id, user_id))
+
+
+@router.get(
+    "/{user_id}/profile",
+    response_model=UserProfileResponse,
+    summary="Admin only: get user profile by id",
+    description=ADMIN_ONLY_DESCRIPTION,
+)
+async def users_get_profile(
+    current_user_id: CurrentUserIdDep,
+    user_id: UUID,
+    use_case: GetUserProfileByIdUseCaseDep,
+) -> UserProfileResponse:
+    return UserProfileResponse.from_dto(await use_case.execute(current_user_id, user_id))
 
 
 @router.patch(

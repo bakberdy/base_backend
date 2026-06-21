@@ -17,6 +17,7 @@ def test_protected_user_endpoints_require_authorization(integration_client: Test
         integration_client.get("/users"),
         integration_client.get("/users/me"),
         integration_client.get(f"/users/{user_id}"),
+        integration_client.get(f"/users/{user_id}/profile"),
         integration_client.patch(f"/users/{user_id}/role", json={"role": UserRole.ADMIN.value}),
         integration_client.patch(f"/users/{user_id}/status", json={"status": UserStatus.BLOCKED.value}),
     ]
@@ -348,6 +349,64 @@ def test_users_get_by_id_success_not_found_and_forbidden_boundaries(
         headers=auth_headers(super_admin.access_token),
     )
     assert invalid_uuid_response.status_code == 422
+
+
+def test_users_get_profile_by_id_success_not_found_and_forbidden_boundaries(
+    integration_client: TestClient,
+    integration_settings: Any,
+) -> None:
+    super_admin = create_authenticated_user(
+        integration_client,
+        integration_settings,
+        role=UserRole.SUPER_ADMIN,
+    )
+    admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
+    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    regular_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+
+    created_response = integration_client.post(
+        "/users/me/profile",
+        headers=auth_headers(target_user.access_token),
+        json={
+            "full_name": "Managed User",
+            "phone_number": {"country_code": "KZ", "dial_code": "+7", "number": "7001234567"},
+        },
+    )
+    assert created_response.status_code == 201
+
+    success_response = integration_client.get(
+        f"/users/{target_user.id}/profile",
+        headers=auth_headers(admin.access_token),
+    )
+    assert success_response.status_code == 200
+    assert success_response.json()["user_id"] == str(target_user.id)
+    assert success_response.json()["full_name"] == "Managed User"
+
+    regular_user_response = integration_client.get(
+        f"/users/{target_user.id}/profile",
+        headers=auth_headers(regular_user.access_token),
+    )
+    assert regular_user_response.status_code == 403
+
+    forbidden_response = integration_client.get(
+        f"/users/{super_admin.id}/profile",
+        headers=auth_headers(admin.access_token),
+    )
+    assert forbidden_response.status_code == 403
+
+    missing_user_response = integration_client.get(
+        f"/users/{uuid4()}/profile",
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert missing_user_response.status_code == 404
+    assert missing_user_response.json()["message"] == "USER_NOT_FOUND"
+
+    missing_profile_response = integration_client.get(
+        f"/users/{admin.id}/profile",
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert missing_profile_response.status_code == 404
+    assert missing_profile_response.json()["message"] == "USER_PROFILE_NOT_FOUND"
 
 
 def test_update_user_role_success_forbidden_not_found_and_validation(
