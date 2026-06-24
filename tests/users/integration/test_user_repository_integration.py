@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.common.pagination.exceptions import InvalidSortKeyError
 from app.common.pagination.schemas import SortingMethod
 from app.modules.users.domain.enums import UserRole, UserStatus
-from app.modules.users.infrastructure.sqlalchemy_models import UserModel
+from app.modules.users.infrastructure.sqlalchemy_models import UserModel, UserProfileModel
 from app.modules.users.infrastructure.sqlalchemy_repositories import SqlAlchemyUserRepository
 
 
@@ -46,9 +46,24 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
                 created_at=now - timedelta(days=1),
             ),
         ]
+        profiles = [
+            UserProfileModel(
+                user_id=records[1].id,
+                full_name="New User",
+                country_code=None,
+                dial_code=None,
+                phone_number=None,
+                avatar_url=None,
+                avatar_object_key=None,
+                created_at=now,
+                updated_at=now,
+                completed_at=now,
+            ),
+        ]
 
         async with integration_session_maker() as session:
             session.add_all(records)
+            session.add_all(profiles)
             await session.commit()
 
         async with integration_session_maker() as session:
@@ -57,6 +72,16 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
             first_page = await repository.list_users(offset=0, limit=2)
             admin_page = await repository.list_users(offset=0, limit=10, role=UserRole.ADMIN)
             blocked_page = await repository.list_users(offset=0, limit=10, status=UserStatus.BLOCKED)
+            verified_page = await repository.list_users(offset=0, limit=10, is_verified=True)
+            unverified_count = await repository.count_users(is_verified=False)
+            completed_profile_page = await repository.list_users(offset=0, limit=10, is_profile_completed=True)
+            incomplete_profile_page = await repository.list_users(offset=0, limit=10, is_profile_completed=False)
+            created_at_page = await repository.list_users(
+                offset=0,
+                limit=10,
+                created_at_from=now - timedelta(days=2),
+                created_at_to=now,
+            )
             search_page = await repository.list_users(offset=0, limit=10, search="middle")
             email_sorted_page = await repository.list_users(
                 offset=0,
@@ -75,6 +100,20 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
             "old-admin@example.com",
         ]
         assert [user.email for user in blocked_page] == ["middle-admin@example.com"]
+        assert [user.email for user in verified_page] == [
+            "new-user@example.com",
+            "old-admin@example.com",
+        ]
+        assert unverified_count == 1
+        assert [user.email for user in completed_profile_page] == ["new-user@example.com"]
+        assert [user.email for user in incomplete_profile_page] == [
+            "middle-admin@example.com",
+            "old-admin@example.com",
+        ]
+        assert [user.email for user in created_at_page] == [
+            "new-user@example.com",
+            "middle-admin@example.com",
+        ]
         assert [user.email for user in search_page] == ["middle-admin@example.com"]
         assert [user.email for user in email_sorted_page] == [
             "middle-admin@example.com",

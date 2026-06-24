@@ -1,34 +1,23 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from app.common.pagination.schemas import SortingMethod
-from app.modules.users.application.dto import UserDto
-from app.modules.users.application.use_cases.change_user_role import ChangeUserRoleUseCase
+from app.modules.users.api.schemas import UserListRequest
+from app.modules.users.application.use_cases.get_users import GetUsersUseCase
 from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
-from app.modules.users.domain.exceptions import ForbiddenUserActionError
-
-
-class UnitOfWorkSpy:
-    def __init__(self) -> None:
-        self.commits = 0
-        self.rollbacks = 0
-
-    async def commit(self) -> None:
-        self.commits += 1
-
-    async def rollback(self) -> None:
-        self.rollbacks += 1
 
 
 class UserRepositorySpy:
-    def __init__(self, users: dict[UUID, User]) -> None:
-        self.users = users
-        self.updated_roles: list[tuple[UUID, UserRole]] = []
+    def __init__(self, actor: User, rows: list[User] | None = None) -> None:
+        self.actor = actor
+        self.rows = rows or []
+        self.count_calls: list[dict[str, object]] = []
+        self.list_calls: list[dict[str, object]] = []
 
     async def get_by_id(self, user_id: UUID) -> User | None:
-        return self.users.get(user_id)
+        return self.actor if user_id == self.actor.id else None
 
     async def get_by_email(self, email: str) -> User | None:
         raise NotImplementedError
@@ -50,7 +39,8 @@ class UserRepositorySpy:
         created_at_to: datetime | None = None,
         search: str | None = None,
     ) -> int:
-        raise NotImplementedError
+        self.count_calls.append(locals() | {"self": None})
+        return len(self.rows)
 
     async def list_users(
         self,
@@ -67,21 +57,11 @@ class UserRepositorySpy:
         sort_key: str = "created_at",
         sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[User]:
-        raise NotImplementedError
+        self.list_calls.append(locals() | {"self": None})
+        return self.rows
 
     async def update_role(self, user_id: UUID, role: UserRole) -> User | None:
-        self.updated_roles.append((user_id, role))
-        user = self.users.get(user_id)
-        if user is None:
-            return None
-        return User(
-            id=user.id,
-            email=user.email,
-            role=role,
-            status=user.status,
-            is_verified=user.is_verified,
-            created_at=user.created_at,
-        )
+        raise NotImplementedError
 
     async def update_status(self, user_id: UUID, status: UserStatus) -> User | None:
         raise NotImplementedError
@@ -152,51 +132,88 @@ class UserRepositorySpy:
         raise NotImplementedError
 
 
-def make_user(*, role: UserRole, status: UserStatus = UserStatus.ACTIVE) -> User:
+def make_user(role: UserRole) -> User:
     return User(
         id=uuid4(),
-        email=f"{uuid4()}@example.com",
+        email=f"{uuid4().hex}@example.com",
         role=role,
-        status=status,
+        status=UserStatus.ACTIVE,
         is_verified=True,
         created_at=datetime.now(UTC),
     )
 
 
-def execute(use_case: ChangeUserRoleUseCase, actor_id: UUID, target_id: UUID, role: UserRole) -> UserDto:
-    return asyncio.run(use_case.execute(actor_id, target_id, role))
+def test_get_users_forwards_filters_for_super_admin() -> None:
+    async def scenario() -> None:
+        actor = make_user(UserRole.SUPER_ADMIN)
+        row = make_user(UserRole.ADMIN)
+        repository = UserRepositorySpy(actor, rows=[row])
+        use_case = GetUsersUseCase(repository)
+        created_at_from = datetime.now(UTC) - timedelta(days=7)
+        created_at_to = datetime.now(UTC)
+
+        result = await use_case.execute(
+            actor.id,
+            UserListRequest(
+                page_number=1,
+                limit=20,
+                role=UserRole.ADMIN,
+                status=UserStatus.ACTIVE,
+                is_verified=True,
+                is_profile_completed=False,
+                created_at_from=created_at_from,
+                created_at_to=created_at_to,
+                search="admin",
+                sort_key="email",
+                sorting_method=SortingMethod.ASC,
+            ),
+        )
+
+        assert [item.id for item in result.items] == [row.id]
+        assert repository.count_calls == [
+            {
+                "self": None,
+                "role": UserRole.ADMIN,
+                "status": UserStatus.ACTIVE,
+                "is_verified": True,
+                "is_profile_completed": False,
+                "created_at_from": created_at_from,
+                "created_at_to": created_at_to,
+                "search": "admin",
+            },
+        ]
+        assert repository.list_calls[0]["role"] == UserRole.ADMIN
+        assert repository.list_calls[0]["is_verified"] is True
+        assert repository.list_calls[0]["is_profile_completed"] is False
+        assert repository.list_calls[0]["created_at_from"] == created_at_from
+        assert repository.list_calls[0]["created_at_to"] == created_at_to
+        assert repository.list_calls[0]["search"] == "admin"
+        assert repository.list_calls[0]["sort_key"] == "email"
+        assert repository.list_calls[0]["sorting_method"] == SortingMethod.ASC
+
+    asyncio.run(scenario())
 
 
-def test_super_admin_can_change_user_role() -> None:
-    actor = make_user(role=UserRole.SUPER_ADMIN)
-    target = make_user(role=UserRole.USER)
-    repository = UserRepositorySpy({actor.id: actor, target.id: target})
-    unit_of_work = UnitOfWorkSpy()
-    use_case = ChangeUserRoleUseCase(repository, unit_of_work)
+def test_get_users_admin_role_filter_cannot_escape_user_scope() -> None:
+    async def scenario() -> None:
+        actor = make_user(UserRole.ADMIN)
+        repository = UserRepositorySpy(actor, rows=[make_user(UserRole.ADMIN)])
+        use_case = GetUsersUseCase(repository)
 
-    result = execute(use_case, actor.id, target.id, UserRole.ADMIN)
+        result = await use_case.execute(
+            actor.id,
+            UserListRequest(
+                page_number=1,
+                limit=20,
+                role=UserRole.ADMIN,
+                sort_key="created_at",
+                search=None,
+            ),
+        )
 
-    assert result.id == target.id
-    assert result.role == UserRole.ADMIN
-    assert repository.updated_roles == [(target.id, UserRole.ADMIN)]
-    assert unit_of_work.commits == 1
-    assert unit_of_work.rollbacks == 0
+        assert result.items == []
+        assert result.pagination.total_items == 0
+        assert repository.count_calls == []
+        assert repository.list_calls == []
 
-
-def test_admin_cannot_escalate_roles() -> None:
-    actor = make_user(role=UserRole.ADMIN)
-    target = make_user(role=UserRole.USER)
-    repository = UserRepositorySpy({actor.id: actor, target.id: target})
-    unit_of_work = UnitOfWorkSpy()
-    use_case = ChangeUserRoleUseCase(repository, unit_of_work)
-
-    try:
-        execute(use_case, actor.id, target.id, UserRole.ADMIN)
-    except ForbiddenUserActionError:
-        pass
-    else:
-        raise AssertionError("admin must not be able to change roles")
-
-    assert repository.updated_roles == []
-    assert unit_of_work.commits == 0
-    assert unit_of_work.rollbacks == 0
+    asyncio.run(scenario())

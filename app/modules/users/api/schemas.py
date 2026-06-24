@@ -16,6 +16,11 @@ _LOCAL_PHONE_NUMBER_PATTERN = r"^\d{10}$"
 
 class UserListRequest(BaseListRequest):
     status: UserStatus | None = None
+    role: UserRole | None = None
+    is_verified: bool | None = None
+    is_profile_completed: bool | None = None
+    created_at_from: datetime | None = None
+    created_at_to: datetime | None = None
     search: str | None = Field(None, min_length=1, max_length=255)
 
 

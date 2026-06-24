@@ -21,6 +21,10 @@ class UserRepository(Protocol):
         *,
         role: UserRole | None = None,
         status: UserStatus | None = None,
+        is_verified: bool | None = None,
+        is_profile_completed: bool | None = None,
+        created_at_from: datetime | None = None,
+        created_at_to: datetime | None = None,
         search: str | None = None,
     ) -> int: ...
 
@@ -31,6 +35,10 @@ class UserRepository(Protocol):
         limit: int,
         role: UserRole | None = None,
         status: UserStatus | None = None,
+        is_verified: bool | None = None,
+        is_profile_completed: bool | None = None,
+        created_at_from: datetime | None = None,
+        created_at_to: datetime | None = None,
         search: str | None = None,
         sort_key: str = "created_at",
         sorting_method: SortingMethod = SortingMethod.DESC,

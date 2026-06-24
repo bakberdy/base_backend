@@ -14,15 +14,44 @@ class GetUsersUseCase:
 
     async def execute(self, actor_id: UUID, request: BaseListRequest) -> UsersPageDto:
         actor = await get_admin_actor(self._users, actor_id)
-        role_filter = None if actor.role == UserRole.SUPER_ADMIN else UserRole.USER
+        requested_role = getattr(request, "role", None)
+        if actor.role == UserRole.SUPER_ADMIN:
+            role_filter = requested_role
+        elif requested_role not in (None, UserRole.USER):
+            return UsersPageDto(
+                items=[],
+                pagination=build_pagination_meta(
+                    page=request.page_number,
+                    limit=request.limit,
+                    total_items=0,
+                ),
+            )
+        else:
+            role_filter = UserRole.USER
         status_filter = getattr(request, "status", None)
+        is_verified = getattr(request, "is_verified", None)
+        is_profile_completed = getattr(request, "is_profile_completed", None)
+        created_at_from = getattr(request, "created_at_from", None)
+        created_at_to = getattr(request, "created_at_to", None)
         search = getattr(request, "search", None)
-        total = await self._users.count_users(role=role_filter, status=status_filter, search=search)
+        total = await self._users.count_users(
+            role=role_filter,
+            status=status_filter,
+            is_verified=is_verified,
+            is_profile_completed=is_profile_completed,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
+            search=search,
+        )
         rows = await self._users.list_users(
             offset=pagination_offset(request),
             limit=request.limit,
             role=role_filter,
             status=status_filter,
+            is_verified=is_verified,
+            is_profile_completed=is_profile_completed,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
             search=search,
             sort_key=request.sort_key,
             sorting_method=request.sorting_method,

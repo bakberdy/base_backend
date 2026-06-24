@@ -89,6 +89,10 @@ def _user_conditions(
     *,
     role: UserRole | None = None,
     status: UserStatus | None = None,
+    is_verified: bool | None = None,
+    is_profile_completed: bool | None = None,
+    created_at_from: datetime | None = None,
+    created_at_to: datetime | None = None,
     search: str | None = None,
 ) -> list:
     conditions = []
@@ -96,6 +100,16 @@ def _user_conditions(
         conditions.append(UserModel.role == role.value)
     if status is not None:
         conditions.append(UserModel.status == status.value)
+    if is_verified is not None:
+        conditions.append(UserModel.is_verified.is_(is_verified))
+    if is_profile_completed is True:
+        conditions.append(UserProfileModel.completed_at.is_not(None))
+    elif is_profile_completed is False:
+        conditions.append(UserProfileModel.completed_at.is_(None))
+    if created_at_from is not None:
+        conditions.append(UserModel.created_at >= created_at_from)
+    if created_at_to is not None:
+        conditions.append(UserModel.created_at <= created_at_to)
     if search:
         pattern = f"%{search.strip()}%"
         conditions.append(
@@ -151,9 +165,21 @@ class SqlAlchemyUserRepository(UserRepository):
         *,
         role: UserRole | None = None,
         status: UserStatus | None = None,
+        is_verified: bool | None = None,
+        is_profile_completed: bool | None = None,
+        created_at_from: datetime | None = None,
+        created_at_to: datetime | None = None,
         search: str | None = None,
     ) -> int:
-        conditions = _user_conditions(role=role, status=status, search=search)
+        conditions = _user_conditions(
+            role=role,
+            status=status,
+            is_verified=is_verified,
+            is_profile_completed=is_profile_completed,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
+            search=search,
+        )
         stmt = select(func.count()).select_from(UserModel).outerjoin(UserProfileModel).where(*conditions)
         result = await self._session.execute(stmt)
         return int(result.scalar_one() or 0)
@@ -165,11 +191,23 @@ class SqlAlchemyUserRepository(UserRepository):
         limit: int,
         role: UserRole | None = None,
         status: UserStatus | None = None,
+        is_verified: bool | None = None,
+        is_profile_completed: bool | None = None,
+        created_at_from: datetime | None = None,
+        created_at_to: datetime | None = None,
         search: str | None = None,
         sort_key: str = "created_at",
         sorting_method: SortingMethod = SortingMethod.DESC,
     ) -> list[User]:
-        conditions = _user_conditions(role=role, status=status, search=search)
+        conditions = _user_conditions(
+            role=role,
+            status=status,
+            is_verified=is_verified,
+            is_profile_completed=is_profile_completed,
+            created_at_from=created_at_from,
+            created_at_to=created_at_to,
+            search=search,
+        )
         stmt = apply_sorting(
             _with_profile_uploaded(select(UserModel)).where(*conditions),
             sort_key=sort_key,

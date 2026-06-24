@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -36,7 +37,7 @@ from app.modules.users.api.schemas import (
     UserResponse,
 )
 from app.modules.users.domain.entities import PhoneNumber
-from app.modules.users.domain.enums import UserStatus
+from app.modules.users.domain.enums import UserRole, UserStatus
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -50,6 +51,11 @@ def get_user_list_request(
     sorting_method: SortingMethod = Query(SortingMethod.DESC, alias="sorting_method"),
     sort_key: str = Query("created_at", min_length=1, alias="sort_key"),
     status_filter: UserStatus | None = Query(None, alias="status"),
+    role_filter: UserRole | None = Query(None, alias="role"),
+    is_verified: bool | None = Query(None, alias="is_verified"),
+    is_profile_completed: bool | None = Query(None, alias="is_profile_completed"),
+    created_at_from: datetime | None = Query(None, alias="created_at_from"),
+    created_at_to: datetime | None = Query(None, alias="created_at_to"),
     search: str | None = Query(None, min_length=1, max_length=255, alias="search"),
 ) -> UserListRequest:
     return build_base_list_request(
@@ -59,6 +65,11 @@ def get_user_list_request(
         sorting_method=sorting_method,
         sort_key=sort_key,
         status=status_filter,
+        role=role_filter,
+        is_verified=is_verified,
+        is_profile_completed=is_profile_completed,
+        created_at_from=created_at_from,
+        created_at_to=created_at_to,
         search=search,
     )
 

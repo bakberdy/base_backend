@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -295,6 +296,55 @@ def test_users_list_enforces_permissions_and_pagination_validation(
     )
     assert status_response.status_code == 200
     assert all(item["status"] == UserStatus.ACTIVE.value for item in status_response.json()["items"])
+
+    role_response = integration_client.get(
+        "/users",
+        params={"role": UserRole.USER.value},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert role_response.status_code == 200
+    assert all(item["role"] == UserRole.USER.value for item in role_response.json()["items"])
+
+    verified_response = integration_client.get(
+        "/users",
+        params={"is_verified": True},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert verified_response.status_code == 200
+    assert all(item["is_verified"] is True for item in verified_response.json()["items"])
+
+    profile_owner = create_authenticated_user(
+        integration_client,
+        integration_settings,
+        role=UserRole.USER,
+        email="profile-complete-user@example.com",
+    )
+    profile_response = integration_client.post(
+        "/users/me/profile",
+        headers=auth_headers(profile_owner.access_token),
+        json={"full_name": "Profile Complete"},
+    )
+    assert profile_response.status_code == 201
+
+    profile_completed_response = integration_client.get(
+        "/users",
+        params={"is_profile_completed": True},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert profile_completed_response.status_code == 200
+    assert all(item["is_user_data_uploaded"] is True for item in profile_completed_response.json()["items"])
+    assert any(
+        item["email"] == "profile-complete-user@example.com"
+        for item in profile_completed_response.json()["items"]
+    )
+
+    future_created_at_response = integration_client.get(
+        "/users",
+        params={"created_at_from": (datetime.now(UTC) + timedelta(days=1)).isoformat()},
+        headers=auth_headers(super_admin.access_token),
+    )
+    assert future_created_at_response.status_code == 200
+    assert future_created_at_response.json()["items"] == []
 
     search_response = integration_client.get(
         "/users",
