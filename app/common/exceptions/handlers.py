@@ -10,9 +10,9 @@ from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.exceptions.base import ApplicationError
-from app.core.logging import get_request_id
 from app.common.localization.service import translate
 from app.common.responses.error_response import ErrorDetails, ErrorResponse, ErrorType, FieldError
+from app.core.logging import get_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +93,13 @@ def _error_details_from_extra(
         return ErrorDetails.model_validate(merged)
 
     if raw_details is not None:
-        return ErrorDetails.model_validate({
-            "status_code": code,
-            "type": ErrorType.BANNER.value,
-            "payload": raw_details,
-        })
+        return ErrorDetails.model_validate(
+            {
+                "status_code": code,
+                "type": ErrorType.BANNER.value,
+                "payload": raw_details,
+            }
+        )
 
     if rest:
         merged = {"status_code": code, "type": ErrorType.SNACKBAR.value, **rest}
@@ -116,10 +118,12 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
         try:
             return _localized_response(ErrorResponse.model_validate(detail))
         except ValidationError:
-            message_key = str(detail.get(
-                "message_key",
-                detail.get("message", detail.get("msg", "request_failed")),
-            ))
+            message_key = str(
+                detail.get(
+                    "message_key",
+                    detail.get("message", detail.get("msg", "request_failed")),
+                )
+            )
             code = int(detail["code"]) if detail.get("code") is not None else status_code
             raw_details = detail.get("details")
             rest = {
@@ -144,11 +148,13 @@ def _http_exception_payload(exc: StarletteHTTPException) -> ErrorResponse:
             ),
         )
 
-    details = ErrorDetails.model_validate({
-        "status_code": status_code,
-        "type": ErrorType.SNACKBAR.value,
-        "payload": detail,
-    })
+    details = ErrorDetails.model_validate(
+        {
+            "status_code": status_code,
+            "type": ErrorType.SNACKBAR.value,
+            "payload": detail,
+        }
+    )
     return _localized_response(
         ErrorResponse(message="request_failed", details=details, code=status_code),
     )
@@ -225,7 +231,9 @@ async def validation_exception_handler(request: Request, exc: Exception) -> JSON
         type=ErrorType.INLINE_ERROR,
         field_errors=_validation_field_errors(exc.errors()),
     )
-    body = _localized_response(ErrorResponse(message="validation_failed", code=422, details=details))
+    body = _localized_response(
+        ErrorResponse(message="validation_failed", code=422, details=details)
+    )
     return JSONResponse(status_code=422, content=body.model_dump(mode="json"))
 
 

@@ -74,7 +74,9 @@ class VerifyEmailUseCase:
             await self._login_requests.mark_login_consumed(login_request_id, now)
             if not user.is_verified:
                 await self._users.set_verified(user.id, True)
-            await self._auth.revoke_active_sessions_for_user_device(user.id, login_request.user_device_id, now)
+            await self._auth.revoke_active_sessions_for_user_device(
+                user.id, login_request.user_device_id, now
+            )
 
             session_id = uuid4()
             refresh_token = self._tokens.create_refresh_token(user.id, session_id)

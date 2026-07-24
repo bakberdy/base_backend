@@ -5,10 +5,13 @@ from uuid import uuid4
 
 import pytest
 
+from app.common.exceptions.base import ApplicationError
 from app.modules.auth.domain.enums import TokenType
 from app.modules.auth.domain.exceptions import InvalidTokenError
-from app.common.exceptions.base import ApplicationError
-from app.modules.auth.infrastructure.bcrypt_password_hasher import BcryptPasswordHasher, SecureOtpCodeProvider
+from app.modules.auth.infrastructure.bcrypt_password_hasher import (
+    BcryptPasswordHasher,
+    SecureOtpCodeProvider,
+)
 from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
 
@@ -106,7 +109,9 @@ def test_email_otp_provider_sends_code_through_smtp(monkeypatch: pytest.MonkeyPa
         use_ssl=False,
     )
 
-    asyncio.run(provider.send_otp_code(email="user@example.com", code="123456", expires_in_seconds=600))
+    asyncio.run(
+        provider.send_otp_code(email="user@example.com", code="123456", expires_in_seconds=600)
+    )
 
     assert sent["host"] == "smtp.example.com"
     assert sent["port"] == 587
@@ -123,7 +128,9 @@ def test_email_otp_provider_wraps_smtp_failures(monkeypatch: pytest.MonkeyPatch)
         def __init__(self, host: str, port: int, timeout: int) -> None:
             raise smtplib.SMTPServerDisconnected("connection timed out")
 
-    monkeypatch.setattr("app.modules.auth.infrastructure.email_otp_provider.smtplib.SMTP", SmtpFailure)
+    monkeypatch.setattr(
+        "app.modules.auth.infrastructure.email_otp_provider.smtplib.SMTP", SmtpFailure
+    )
     provider = SmtpEmailOtpCodeProvider(
         host="smtp.example.com",
         port=587,
@@ -136,6 +143,8 @@ def test_email_otp_provider_wraps_smtp_failures(monkeypatch: pytest.MonkeyPatch)
     )
 
     with pytest.raises(ApplicationError) as exc_info:
-        asyncio.run(provider.send_otp_code(email="user@example.com", code="123456", expires_in_seconds=600))
+        asyncio.run(
+            provider.send_otp_code(email="user@example.com", code="123456", expires_in_seconds=600)
+        )
 
     assert exc_info.value.code == "OTP_DELIVERY_FAILED"

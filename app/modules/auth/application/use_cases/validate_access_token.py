@@ -1,7 +1,11 @@
 from uuid import UUID
 
 from app.modules.auth.domain.enums import TokenType
-from app.modules.auth.domain.exceptions import InvalidTokenError, SessionNotFoundError, SessionRevokedError
+from app.modules.auth.domain.exceptions import (
+    InvalidTokenError,
+    SessionNotFoundError,
+    SessionRevokedError,
+)
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.domain.services import TokenService
 

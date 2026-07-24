@@ -6,7 +6,6 @@ from sqlalchemy.sql import Select
 from app.common.pagination.exceptions import InvalidSortKeyError
 from app.common.pagination.schemas import SortingMethod
 
-
 SortColumns = Mapping[str, Any]
 
 

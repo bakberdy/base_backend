@@ -3,7 +3,11 @@ from uuid import UUID, uuid4
 
 from app.modules.auth.application.dto import TokenPairDto, UnitOfWork
 from app.modules.auth.domain.enums import TokenType
-from app.modules.auth.domain.exceptions import InvalidRefreshTokenError, InvalidTokenError, TokenExpiredError
+from app.modules.auth.domain.exceptions import (
+    InvalidRefreshTokenError,
+    InvalidTokenError,
+    TokenExpiredError,
+)
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.domain.services import PasswordHasher, TokenService
 

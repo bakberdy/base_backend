@@ -10,12 +10,18 @@ from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.users.application.use_cases.approve_user_deletion_request import (
     ApproveUserDeletionRequestUseCase,
 )
-from app.modules.users.application.use_cases.create_user_preferences import CreateUserPreferencesUseCase
+from app.modules.users.application.use_cases.create_user_preferences import (
+    CreateUserPreferencesUseCase,
+)
 from app.modules.users.application.use_cases.create_user_profile import CreateUserProfileUseCase
-from app.modules.users.application.use_cases.request_account_deletion import RequestAccountDeletionUseCase
 from app.modules.users.application.use_cases.remove_user_avatar import RemoveUserAvatarUseCase
+from app.modules.users.application.use_cases.request_account_deletion import (
+    RequestAccountDeletionUseCase,
+)
 from app.modules.users.application.use_cases.update_user_avatar import UpdateUserAvatarUseCase
-from app.modules.users.application.use_cases.update_user_preferences import UpdateUserPreferencesUseCase
+from app.modules.users.application.use_cases.update_user_preferences import (
+    UpdateUserPreferencesUseCase,
+)
 from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.exceptions import (
@@ -343,11 +349,15 @@ def test_avatar_upload_validates_content_type_and_updates_profile() -> None:
     async def scenario() -> None:
         user = make_user()
         repo = UserRepositorySpy({user.id: user})
-        await repo.create_profile(user_id=user.id, full_name="John Smith", phone_number=None, now=datetime.now(UTC))
+        await repo.create_profile(
+            user_id=user.id, full_name="John Smith", phone_number=None, now=datetime.now(UTC)
+        )
         use_case = UpdateUserAvatarUseCase(repo, AvatarStorageSpy(), UnitOfWorkSpy())
 
         with pytest.raises(InvalidAvatarUploadError):
-            await use_case.execute(user.id, filename="avatar.txt", content_type="text/plain", content=b"content")
+            await use_case.execute(
+                user.id, filename="avatar.txt", content_type="text/plain", content=b"content"
+            )
 
         profile = await use_case.execute(
             user.id,
@@ -365,7 +375,9 @@ def test_remove_avatar_deletes_storage_object_and_clears_profile_fields() -> Non
     async def scenario() -> None:
         user = make_user()
         repo = UserRepositorySpy({user.id: user})
-        await repo.create_profile(user_id=user.id, full_name="John Smith", phone_number=None, now=datetime.now(UTC))
+        await repo.create_profile(
+            user_id=user.id, full_name="John Smith", phone_number=None, now=datetime.now(UTC)
+        )
         profile_with_avatar = await repo.update_avatar(
             user_id=user.id,
             avatar_url="/uploads/avatars/avatar.png",
@@ -392,7 +404,9 @@ def test_account_deletion_request_and_admin_approval_soft_delete_user() -> None:
         auth_repo = AuthRepositorySpy()
 
         requested = await RequestAccountDeletionUseCase(repo, UnitOfWorkSpy()).execute(user.id)
-        approved = await ApproveUserDeletionRequestUseCase(repo, cast(AuthRepository, auth_repo), UnitOfWorkSpy()).execute(
+        approved = await ApproveUserDeletionRequestUseCase(
+            repo, cast(AuthRepository, auth_repo), UnitOfWorkSpy()
+        ).execute(
             admin.id,
             user.id,
         )

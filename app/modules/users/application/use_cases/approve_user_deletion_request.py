@@ -3,7 +3,10 @@ from uuid import UUID
 
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.users.application.dto import UnitOfWork, UserDto
-from app.modules.users.application.use_cases._permissions import ensure_can_manage_target, get_admin_actor
+from app.modules.users.application.use_cases._permissions import (
+    ensure_can_manage_target,
+    get_admin_actor,
+)
 from app.modules.users.domain.enums import UserStatus
 from app.modules.users.domain.exceptions import InvalidUserStatusTransitionError, UserNotFoundError
 from app.modules.users.domain.repositories import UserRepository

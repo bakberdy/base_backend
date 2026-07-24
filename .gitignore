@@ -135,3 +135,4 @@ temp/
 
 /config/run/config.*.env
 !/config/run/config.example.env
+!/config/run/config.test.env

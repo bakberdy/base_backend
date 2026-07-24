@@ -1,6 +1,7 @@
 import json
+from collections.abc import Awaitable
 from datetime import UTC, datetime
-from typing import Any, Awaitable, cast
+from typing import Any, cast
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -78,7 +79,9 @@ class RedisLoginRequestStore(LoginRequestStore):
         if login_request is not None:
             await cast(
                 Awaitable[Any],
-                self._redis.srem(_pending_key(login_request.user_id, login_request.user_device_id), request_id),
+                self._redis.srem(
+                    _pending_key(login_request.user_id, login_request.user_device_id), request_id
+                ),
             )
 
     async def _patch_request(self, request_id: str, values: dict[str, object]) -> None:

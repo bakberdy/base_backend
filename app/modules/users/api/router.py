@@ -12,14 +12,14 @@ from app.modules.users.api.dependencies import (
     ChangeUserStatusUseCaseDep,
     CreateUserPreferencesUseCaseDep,
     CreateUserProfileUseCaseDep,
-    GetCurrentUserUseCaseDep,
     GetCurrentUserProfileUseCaseDep,
-    GetUserPreferencesUseCaseDep,
+    GetCurrentUserUseCaseDep,
     GetUserByIdUseCaseDep,
+    GetUserPreferencesUseCaseDep,
     GetUserProfileByIdUseCaseDep,
     GetUsersUseCaseDep,
-    RequestAccountDeletionUseCaseDep,
     RemoveUserAvatarUseCaseDep,
+    RequestAccountDeletionUseCaseDep,
     UpdateUserAvatarUseCaseDep,
     UpdateUserPreferencesUseCaseDep,
     UpdateUserProfileUseCaseDep,
@@ -184,7 +184,9 @@ async def users_get_preferences(
     return UserPreferencesResponse.from_dto(await use_case.execute(user_id))
 
 
-@router.post("/me/preferences", response_model=UserPreferencesResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/me/preferences", response_model=UserPreferencesResponse, status_code=status.HTTP_201_CREATED
+)
 async def users_create_preferences(
     user_id: CurrentUserIdDep,
     body: CreateUserPreferencesRequest,

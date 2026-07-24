@@ -39,9 +39,13 @@ class LoginUserUseCase:
         now = datetime.now(UTC)
         try:
             user = await self._users.get_or_create(normalized, now)
-            user_device_id = await self._auth.upsert_user_device(user_id=user.id, device=device, now=now)
+            user_device_id = await self._auth.upsert_user_device(
+                user_id=user.id, device=device, now=now
+            )
             await self._login_requests.delete_pending_logins(user.id, user_device_id)
-            code = self._dev_otp_code if self._dev_otp_code else self._otp_provider.generate_otp_code()
+            code = (
+                self._dev_otp_code if self._dev_otp_code else self._otp_provider.generate_otp_code()
+            )
             request_id = f"req_{uuid4().hex}"
             await self._login_requests.create_login_request(
                 request_id=request_id,

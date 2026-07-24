@@ -163,7 +163,9 @@ def make_user(*, role: UserRole, status: UserStatus = UserStatus.ACTIVE) -> User
     )
 
 
-def execute(use_case: ChangeUserRoleUseCase, actor_id: UUID, target_id: UUID, role: UserRole) -> UserDto:
+def execute(
+    use_case: ChangeUserRoleUseCase, actor_id: UUID, target_id: UUID, role: UserRole
+) -> UserDto:
     return asyncio.run(use_case.execute(actor_id, target_id, role))
 
 

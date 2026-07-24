@@ -11,7 +11,6 @@ from app.modules.users.domain.enums import UserRole, UserStatus
 from app.modules.users.infrastructure.sqlalchemy_models import UserModel, UserProfileModel
 from app.modules.users.infrastructure.sqlalchemy_repositories import SqlAlchemyUserRepository
 
-
 pytestmark = pytest.mark.integration
 
 
@@ -71,11 +70,17 @@ def test_user_repository_filters_paginates_and_sorts_with_real_database(
 
             first_page = await repository.list_users(offset=0, limit=2)
             admin_page = await repository.list_users(offset=0, limit=10, role=UserRole.ADMIN)
-            blocked_page = await repository.list_users(offset=0, limit=10, status=UserStatus.BLOCKED)
+            blocked_page = await repository.list_users(
+                offset=0, limit=10, status=UserStatus.BLOCKED
+            )
             verified_page = await repository.list_users(offset=0, limit=10, is_verified=True)
             unverified_count = await repository.count_users(is_verified=False)
-            completed_profile_page = await repository.list_users(offset=0, limit=10, is_profile_completed=True)
-            incomplete_profile_page = await repository.list_users(offset=0, limit=10, is_profile_completed=False)
+            completed_profile_page = await repository.list_users(
+                offset=0, limit=10, is_profile_completed=True
+            )
+            incomplete_profile_page = await repository.list_users(
+                offset=0, limit=10, is_profile_completed=False
+            )
             created_at_page = await repository.list_users(
                 offset=0,
                 limit=10,

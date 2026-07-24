@@ -6,8 +6,8 @@ The backend uses four GitHub Actions workflows:
 
 | Workflow | Purpose |
 | -------- | ------- |
-| `.github/workflows/analyzer-check.yml` | Installs Python dependencies and runs `python -m mypy`. |
-| `.github/workflows/publish-image.yml` | Runs analyzer first, then builds and publishes the Docker image to GitHub Container Registry. |
+| `.github/workflows/project-validation.yml` | Runs formatting, lint, types, tests, Uvicorn, Docker, secrets, and diff checks. |
+| `.github/workflows/publish-image.yml` | Runs full validation first, then builds and publishes the Docker image to GitHub Container Registry. |
 | `.github/workflows/terraform.yml` | Runs Terraform plan/apply for AWS infrastructure. |
 | `.github/workflows/deploy-app.yml` | Uses AWS SSM to deploy a selected GHCR image tag to the selected EC2 environment. |
 
@@ -87,13 +87,20 @@ If the backend package is public, EC2 can pull without this token.
 Pull requests:
 
 ```text
-analyzer-check.yml -> python -m mypy
+project-validation.yml
+  -> Ruff format and lint
+  -> mypy
+  -> unit and integration tests
+  -> Uvicorn smoke test
+  -> Docker build
+  -> Gitleaks
+  -> git diff --check
 ```
 
 Pushes to `main` or `master`, tags matching `v*`, and manual image runs:
 
 ```text
-publish-image.yml -> analyzer-check.yml -> Docker build -> GHCR push
+publish-image.yml -> project-validation.yml -> Docker build -> GHCR push
 ```
 
 Manual app deployment:
@@ -135,7 +142,8 @@ Before pushing backend code changes, run:
 ```bash
 cd backend
 make install
-.venv/bin/python -m mypy
+make validate
+make test-all
 ```
 
 Before changing Terraform workflow or infra files, run locally from `backend/infra/aws` when Terraform is installed:

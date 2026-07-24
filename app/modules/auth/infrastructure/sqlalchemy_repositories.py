@@ -39,7 +39,9 @@ def _session_entity(model: UserSessionModel, *, include_device: bool = False) ->
         created_at=model.created_at,
         last_active_at=model.last_active_at,
         revoked_at=model.revoked_at,
-        user_device=_device_entity(model.user_device) if include_device and model.user_device is not None else None,
+        user_device=_device_entity(model.user_device)
+        if include_device and model.user_device is not None
+        else None,
     )
 
 
@@ -111,12 +113,16 @@ class SqlAlchemyAuthRepository(AuthRepository):
             values["push_token_updated_at"] = now
         if values:
             await self._session.execute(
-                update(UserDeviceModel).where(UserDeviceModel.id == user_device_id).values(**values),
+                update(UserDeviceModel)
+                .where(UserDeviceModel.id == user_device_id)
+                .values(**values),
             )
 
     async def touch_user_device(self, user_device_id: UUID, at: datetime) -> None:
         await self._session.execute(
-            update(UserDeviceModel).where(UserDeviceModel.id == user_device_id).values(last_seen_at=at),
+            update(UserDeviceModel)
+            .where(UserDeviceModel.id == user_device_id)
+            .values(last_seen_at=at),
         )
 
     async def revoke_active_sessions_for_user_device(
@@ -157,7 +163,9 @@ class SqlAlchemyAuthRepository(AuthRepository):
         )
 
     async def get_session(self, session_id: UUID) -> UserSession | None:
-        result = await self._session.execute(select(UserSessionModel).where(UserSessionModel.id == session_id))
+        result = await self._session.execute(
+            select(UserSessionModel).where(UserSessionModel.id == session_id)
+        )
         row = result.scalar_one_or_none()
         return _session_entity(row) if row is not None else None
 
@@ -177,7 +185,9 @@ class SqlAlchemyAuthRepository(AuthRepository):
             conditions.append(UserSessionModel.revoked_at.is_(None))
         elif is_active is False:
             conditions.append(UserSessionModel.revoked_at.is_not(None))
-        result = await self._session.execute(select(func.count()).select_from(UserSessionModel).where(*conditions))
+        result = await self._session.execute(
+            select(func.count()).select_from(UserSessionModel).where(*conditions)
+        )
         return int(result.scalar_one() or 0)
 
     async def list_sessions_for_user(

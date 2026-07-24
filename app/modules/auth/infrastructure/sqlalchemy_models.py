@@ -29,7 +29,9 @@ class UserDeviceModel(Base):
     app_version: Mapped[str] = mapped_column(String(64), nullable=False)
     push_provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
     push_token: Mapped[str | None] = mapped_column(Text, nullable=True)
-    push_token_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    push_token_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -53,7 +55,9 @@ class UserSessionModel(Base):
         index=True,
     )
     refresh_token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

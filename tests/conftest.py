@@ -1,5 +1,5 @@
-import os
 import asyncio
+import os
 from collections.abc import Generator
 from typing import Any
 
@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 
 def pytest_configure() -> None:
     pytest.register_assert_rewrite("tests.helpers")
@@ -92,12 +93,12 @@ def integration_settings() -> Any:
             ),
         )
     except Exception as exc:
-        pytest.skip(f"PostgreSQL integration database is not reachable: {exc}")
+        pytest.fail(f"PostgreSQL integration database is not reachable: {exc}")
 
     try:
         asyncio.run(_assert_redis_ready(settings.redis_url))
     except Exception as exc:
-        pytest.skip(f"Redis integration store is not reachable: {exc}")
+        pytest.fail(f"Redis integration store is not reachable: {exc}")
 
     return settings
 
@@ -105,7 +106,7 @@ def integration_settings() -> Any:
 @pytest.fixture()
 def integration_session_maker(
     integration_settings: Any,
-) -> Generator[async_sessionmaker[AsyncSession], None, None]:
+) -> Generator[async_sessionmaker[AsyncSession]]:
     from app.core.database import create_engine, create_session_maker
 
     asyncio.run(
@@ -126,9 +127,9 @@ def integration_session_maker(
 
 
 @pytest.fixture()
-def integration_client(integration_settings: Any) -> Generator[TestClient, None, None]:
-    from app.main import create_app
+def integration_client(integration_settings: Any) -> Generator[TestClient]:
     from app.core.security import limiter
+    from app.main import create_app
 
     asyncio.run(
         _reset_database(

@@ -11,16 +11,18 @@ from app.common.exceptions.handlers import rate_limit_exception_handler
 
 
 def _request() -> Request:
-    return Request({
-        "type": "http",
-        "method": "POST",
-        "path": "/auth/login",
-        "headers": [],
-        "query_string": b"",
-        "scheme": "http",
-        "server": ("testserver", 80),
-        "client": ("testclient", 50000),
-    })
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/auth/login",
+            "headers": [],
+            "query_string": b"",
+            "scheme": "http",
+            "server": ("testserver", 80),
+            "client": ("testclient", 50000),
+        }
+    )
 
 
 def _rate_limit_exceeded() -> RateLimitExceeded:

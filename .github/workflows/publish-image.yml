@@ -17,11 +17,11 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  analyze:
-    uses: ./.github/workflows/analyzer-check.yml
+  validate:
+    uses: ./.github/workflows/project-validation.yml
 
   publish:
-    needs: analyze
+    needs: validate
     runs-on: ubuntu-latest
 
     steps:

@@ -34,14 +34,10 @@ async def lifespan(app: FastAPI):
         ) from exc
     except ConnectionRefusedError as exc:
         await engine.dispose()
-        raise RuntimeError(
-            f"Cannot reach PostgreSQL at {target} (connection refused)."
-        ) from exc
+        raise RuntimeError(f"Cannot reach PostgreSQL at {target} (connection refused).") from exc
     except OSError as exc:
         await engine.dispose()
-        raise RuntimeError(
-            f"Cannot reach PostgreSQL at {target}: {exc}."
-        ) from exc
+        raise RuntimeError(f"Cannot reach PostgreSQL at {target}: {exc}.") from exc
     app.state.engine = engine
     app.state.session_maker = create_session_maker(engine)
     app.state.redis = Redis.from_url(settings.redis_url, decode_responses=False)

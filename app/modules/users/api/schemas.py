@@ -4,8 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.common.pagination.schemas import BaseListRequest
-from app.modules.users.application.dto import UserDto
-from app.modules.users.application.dto import UserPreferencesDto, UserProfileDto
+from app.modules.users.application.dto import UserDto, UserPreferencesDto, UserProfileDto
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 _PHONE_NUMBER_PATTERN = r"^\+[1-9]\d{7,14}$"

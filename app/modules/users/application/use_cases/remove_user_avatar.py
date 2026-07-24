@@ -3,7 +3,11 @@ from uuid import UUID
 
 from app.modules.users.application.dto import UnitOfWork, UserProfileDto
 from app.modules.users.domain.enums import UserStatus
-from app.modules.users.domain.exceptions import ForbiddenUserActionError, UserNotFoundError, UserProfileNotFoundError
+from app.modules.users.domain.exceptions import (
+    ForbiddenUserActionError,
+    UserNotFoundError,
+    UserProfileNotFoundError,
+)
 from app.modules.users.domain.repositories import UserRepository
 from app.modules.users.domain.services import AvatarStorageService
 

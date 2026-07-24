@@ -3,7 +3,9 @@ from uuid import uuid4
 
 
 class LocalAvatarStorageService:
-    def __init__(self, base_dir: Path | None = None, public_prefix: str = "/uploads/avatars") -> None:
+    def __init__(
+        self, base_dir: Path | None = None, public_prefix: str = "/uploads/avatars"
+    ) -> None:
         self._base_dir = base_dir or Path("uploads") / "avatars"
         self._public_prefix = public_prefix.rstrip("/")
 

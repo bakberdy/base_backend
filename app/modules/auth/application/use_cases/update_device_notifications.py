@@ -2,7 +2,11 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.modules.auth.application.dto import DeviceNotifications, UnitOfWork
-from app.modules.auth.domain.exceptions import ForbiddenSessionError, SessionNotFoundError, SessionRevokedError
+from app.modules.auth.domain.exceptions import (
+    ForbiddenSessionError,
+    SessionNotFoundError,
+    SessionRevokedError,
+)
 from app.modules.auth.domain.repositories import AuthRepository
 
 

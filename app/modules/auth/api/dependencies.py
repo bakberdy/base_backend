@@ -2,8 +2,8 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Request, status
-from redis.asyncio import Redis
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.responses.error_response import api_http_exception
@@ -15,12 +15,17 @@ from app.modules.auth.application.use_cases.logout_user import LogoutUserUseCase
 from app.modules.auth.application.use_cases.refresh_token import RefreshTokenUseCase
 from app.modules.auth.application.use_cases.revoke_all_tokens import RevokeAllTokensUseCase
 from app.modules.auth.application.use_cases.revoke_token import RevokeTokenUseCase
-from app.modules.auth.application.use_cases.update_device_notifications import UpdateDeviceNotificationsUseCase
+from app.modules.auth.application.use_cases.update_device_notifications import (
+    UpdateDeviceNotificationsUseCase,
+)
 from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.application.use_cases.verify_email import VerifyEmailUseCase
 from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher, TokenService
-from app.modules.auth.infrastructure.bcrypt_password_hasher import BcryptPasswordHasher, SecureOtpCodeProvider
+from app.modules.auth.infrastructure.bcrypt_password_hasher import (
+    BcryptPasswordHasher,
+    SecureOtpCodeProvider,
+)
 from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
 from app.modules.auth.infrastructure.redis_login_request_store import RedisLoginRequestStore
@@ -145,7 +150,9 @@ def refresh_token_use_case(
     )
 
 
-def get_sessions_use_case(auth_repo: AuthRepository = Depends(get_auth_repository)) -> GetSessionsUseCase:
+def get_sessions_use_case(
+    auth_repo: AuthRepository = Depends(get_auth_repository),
+) -> GetSessionsUseCase:
     return GetSessionsUseCase(auth_repo)
 
 
@@ -206,11 +213,15 @@ async def get_current_session_context(
     return await use_case.execute(creds.credentials)
 
 
-async def get_current_user_id(context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)]) -> UUID:
+async def get_current_user_id(
+    context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)],
+) -> UUID:
     return context[0]
 
 
-async def get_current_session_id(context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)]) -> UUID:
+async def get_current_session_id(
+    context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)],
+) -> UUID:
     return context[1]
 
 

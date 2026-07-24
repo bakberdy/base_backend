@@ -47,7 +47,9 @@ class UserProfileModel(Base):
     avatar_object_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
 
 
 class UserPreferencesModel(Base):
@@ -72,6 +74,8 @@ class UserPreferencesModel(Base):
     )
     push_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    marketing_notifications_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    marketing_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

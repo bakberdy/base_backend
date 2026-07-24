@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 from app.modules.users.domain.enums import UserRole, UserStatus
 from tests.integration_helpers import auth_headers, create_authenticated_user
 
-
 pytestmark = pytest.mark.integration
 
 
@@ -20,7 +19,9 @@ def test_protected_user_endpoints_require_authorization(integration_client: Test
         integration_client.get(f"/users/{user_id}"),
         integration_client.get(f"/users/{user_id}/profile"),
         integration_client.patch(f"/users/{user_id}/role", json={"role": UserRole.ADMIN.value}),
-        integration_client.patch(f"/users/{user_id}/status", json={"status": UserStatus.BLOCKED.value}),
+        integration_client.patch(
+            f"/users/{user_id}/status", json={"status": UserStatus.BLOCKED.value}
+        ),
     ]
 
     for response in responses:
@@ -140,7 +141,9 @@ def test_profile_preferences_and_delete_request_flow(
     assert profile_body["phone_number"]["number"] == "7001234567"
     assert profile_body["completed_at"] is not None
 
-    current_user_response = integration_client.get("/users/me", headers=auth_headers(user.access_token))
+    current_user_response = integration_client.get(
+        "/users/me", headers=auth_headers(user.access_token)
+    )
     assert current_user_response.status_code == 200
     assert current_user_response.json()["is_user_data_uploaded"] is True
 
@@ -295,7 +298,9 @@ def test_users_list_enforces_permissions_and_pagination_validation(
         headers=auth_headers(super_admin.access_token),
     )
     assert status_response.status_code == 200
-    assert all(item["status"] == UserStatus.ACTIVE.value for item in status_response.json()["items"])
+    assert all(
+        item["status"] == UserStatus.ACTIVE.value for item in status_response.json()["items"]
+    )
 
     role_response = integration_client.get(
         "/users",
@@ -332,7 +337,9 @@ def test_users_list_enforces_permissions_and_pagination_validation(
         headers=auth_headers(super_admin.access_token),
     )
     assert profile_completed_response.status_code == 200
-    assert all(item["is_user_data_uploaded"] is True for item in profile_completed_response.json()["items"])
+    assert all(
+        item["is_user_data_uploaded"] is True for item in profile_completed_response.json()["items"]
+    )
     assert any(
         item["email"] == "profile-complete-user@example.com"
         for item in profile_completed_response.json()["items"]
@@ -352,7 +359,9 @@ def test_users_list_enforces_permissions_and_pagination_validation(
         headers=auth_headers(super_admin.access_token),
     )
     assert search_response.status_code == 200
-    assert any(item["email"] == "a-user-sort@example.com" for item in search_response.json()["items"])
+    assert any(
+        item["email"] == "a-user-sort@example.com" for item in search_response.json()["items"]
+    )
 
     invalid_sort_response = integration_client.get(
         "/users",
@@ -373,7 +382,9 @@ def test_users_get_by_id_success_not_found_and_forbidden_boundaries(
         role=UserRole.SUPER_ADMIN,
     )
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
-    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    target_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
 
     success_response = integration_client.get(
         f"/users/{target_user.id}",
@@ -411,8 +422,12 @@ def test_users_get_profile_by_id_success_not_found_and_forbidden_boundaries(
         role=UserRole.SUPER_ADMIN,
     )
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
-    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
-    regular_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    target_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
+    regular_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
 
     created_response = integration_client.post(
         "/users/me/profile",
@@ -449,14 +464,14 @@ def test_users_get_profile_by_id_success_not_found_and_forbidden_boundaries(
         headers=auth_headers(super_admin.access_token),
     )
     assert missing_user_response.status_code == 404
-    assert missing_user_response.json()["message"] == "USER_NOT_FOUND"
+    assert missing_user_response.json()["message"] == "User not found"
 
     missing_profile_response = integration_client.get(
         f"/users/{admin.id}/profile",
         headers=auth_headers(super_admin.access_token),
     )
     assert missing_profile_response.status_code == 404
-    assert missing_profile_response.json()["message"] == "USER_PROFILE_NOT_FOUND"
+    assert missing_profile_response.json()["message"] == "User profile not found"
 
 
 def test_update_user_role_success_forbidden_not_found_and_validation(
@@ -469,7 +484,9 @@ def test_update_user_role_success_forbidden_not_found_and_validation(
         role=UserRole.SUPER_ADMIN,
     )
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
-    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    target_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
 
     forbidden_response = integration_client.patch(
         f"/users/{target_user.id}/role",
@@ -511,7 +528,9 @@ def test_update_user_status_success_forbidden_not_found_and_validation(
         role=UserRole.SUPER_ADMIN,
     )
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
-    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    target_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
 
     forbidden_response = integration_client.patch(
         f"/users/{super_admin.id}/status",
@@ -548,7 +567,9 @@ def test_admin_approve_deletion_request_soft_deletes_user(
     integration_settings: Any,
 ) -> None:
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
-    target_user = create_authenticated_user(integration_client, integration_settings, role=UserRole.USER)
+    target_user = create_authenticated_user(
+        integration_client, integration_settings, role=UserRole.USER
+    )
 
     invalid_approval_response = integration_client.post(
         f"/users/{target_user.id}/approve-deletion-request",

@@ -1,17 +1,17 @@
 import logging
 from time import perf_counter
-from uuid import uuid4
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from starlette.requests import Request
 
-from app.core.logging import reset_request_id, set_request_id
 from app.common.localization.locale_resolver import locale_from_request
 from app.common.localization.service import SUPPORTED_LOCALES, reset_locale, set_locale
 from app.common.responses.error_response import ErrorResponse
+from app.core.logging import reset_request_id, set_request_id
 
 _HTTP_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
 logger = logging.getLogger(__name__)
@@ -92,7 +92,10 @@ def _normalize_422_descriptions(schema: dict[str, Any]) -> None:
             if not isinstance(operation, dict):
                 continue
             response_422 = operation.get("responses", {}).get("422")
-            if isinstance(response_422, dict) and response_422.get("description") == "Validation Error":
+            if (
+                isinstance(response_422, dict)
+                and response_422.get("description") == "Validation Error"
+            ):
                 response_422["description"] = "Validation failed"
 
 

@@ -11,7 +11,6 @@ from tests.integration_helpers import (
     device_payload,
 )
 
-
 pytestmark = pytest.mark.integration
 
 
@@ -50,7 +49,9 @@ def test_auth_flow_rotates_refresh_token_and_revokes_reused_token(
 
     email = f"integration-{uuid4().hex}@example.com"
     login_request_id = _login(integration_client, email)
-    first_pair = _verify(integration_client, email, login_request_id, integration_settings.dev_otp_code)
+    first_pair = _verify(
+        integration_client, email, login_request_id, integration_settings.dev_otp_code
+    )
 
     current_user_response = integration_client.get(
         "/users/me",
@@ -124,10 +125,11 @@ def test_verify_email_rejects_invalid_and_reused_otp_requests(
 
     email = f"verify-{uuid4().hex}@example.com"
     login_request_id = _login(integration_client, email)
+    invalid_code = "999999" if integration_settings.dev_otp_code == "000000" else "000000"
 
     invalid_response = integration_client.post(
         "/auth/verify-email",
-        json={"email": email, "code": "000000", "login_request_id": login_request_id},
+        json={"email": email, "code": invalid_code, "login_request_id": login_request_id},
     )
     assert invalid_response.status_code == 400
     invalid_body = invalid_response.json()
@@ -138,7 +140,11 @@ def test_verify_email_rejects_invalid_and_reused_otp_requests(
 
     reused_response = integration_client.post(
         "/auth/verify-email",
-        json={"email": email, "code": integration_settings.dev_otp_code, "login_request_id": login_request_id},
+        json={
+            "email": email,
+            "code": integration_settings.dev_otp_code,
+            "login_request_id": login_request_id,
+        },
     )
     assert reused_response.status_code == 410
     assert reused_response.json()["code"] == 410

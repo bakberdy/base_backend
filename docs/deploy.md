@@ -33,13 +33,13 @@ make stop
 Run tests:
 
 ```bash
-make test
+make test-all
 ```
 
-Run the same analyzer used by GitHub:
+Run the local validation suite used by GitHub:
 
 ```bash
-.venv/bin/python -m mypy
+make validate
 ```
 
 Local env file:
@@ -48,7 +48,7 @@ Local env file:
 config/run/config.development.env
 ```
 
-## GitHub Analyzer
+## GitHub Project Validation
 
 Detailed GitHub Actions setup is documented in:
 
@@ -56,10 +56,10 @@ Detailed GitHub Actions setup is documented in:
 .github/docs/github-actions.md
 ```
 
-The analyzer workflow is:
+The reusable validation workflow is:
 
 ```text
-.github/workflows/analyzer-check.yml
+.github/workflows/project-validation.yml
 ```
 
 It runs automatically for pull requests with these actions:
@@ -68,16 +68,21 @@ It runs automatically for pull requests with these actions:
 opened, synchronize, reopened, ready_for_review
 ```
 
-It also supports `workflow_call`, so other workflows can reuse the same check before publishing or deploying.
+It also supports `workflow_call`, so the image publishing workflow can reuse the complete
+validation suite.
 
-The workflow does this:
+The workflow checks:
 
 ```text
-checkout repo
-set up Python 3.13
-install requirements.txt
-run python -m mypy
-write success-analyze to the GitHub summary
+Ruff formatting
+Ruff lint rules
+mypy types
+unit tests
+integration tests with PostgreSQL and Redis
+real Uvicorn startup and /health
+Docker image build
+Gitleaks secret scanning
+Git whitespace errors
 ```
 
 Use it locally before pushing backend code changes:
@@ -85,7 +90,7 @@ Use it locally before pushing backend code changes:
 ```bash
 cd backend
 make install
-.venv/bin/python -m mypy
+make validate
 ```
 
 If GitHub fails with an import error that does not fail locally, first check that the dependency is listed in `requirements.txt`, then rerun the same command with a clean environment:
@@ -112,7 +117,8 @@ The workflow is:
 
 It runs on pushes to `main` or `master`, tags matching `v*`, and manual dispatch.
 
-Before the Docker image is built and pushed, `publish-image.yml` calls `analyzer-check.yml`. If `python -m mypy` fails, the image is not published.
+Before the Docker image is built and pushed, `publish-image.yml` calls
+`project-validation.yml`. The image is not published if any validation job fails.
 
 If the package is private, login on EC2:
 

@@ -9,7 +9,11 @@ from app.common.pagination.sqlalchemy import apply_sorting, model_sort_columns
 from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.repositories import UserRepository
-from app.modules.users.infrastructure.sqlalchemy_models import UserModel, UserPreferencesModel, UserProfileModel
+from app.modules.users.infrastructure.sqlalchemy_models import (
+    UserModel,
+    UserPreferencesModel,
+    UserProfileModel,
+)
 
 
 def _to_entity(model: UserModel) -> User:
@@ -45,7 +49,7 @@ def _phone_number_entity(
 ) -> PhoneNumber | None:
     if dial_code is None or number is None:
         return None
-    if not dial_code.startswith('+'):
+    if not dial_code.startswith("+"):
         return None
     if not number.isdigit():
         return None
@@ -180,7 +184,12 @@ class SqlAlchemyUserRepository(UserRepository):
             created_at_to=created_at_to,
             search=search,
         )
-        stmt = select(func.count()).select_from(UserModel).outerjoin(UserProfileModel).where(*conditions)
+        stmt = (
+            select(func.count())
+            .select_from(UserModel)
+            .outerjoin(UserProfileModel)
+            .where(*conditions)
+        )
         result = await self._session.execute(stmt)
         return int(result.scalar_one() or 0)
 
@@ -219,19 +228,31 @@ class SqlAlchemyUserRepository(UserRepository):
         return [_user_from_row(row) for row in result.all()]
 
     async def update_role(self, user_id: UUID, role: UserRole) -> User | None:
-        stmt = update(UserModel).where(UserModel.id == user_id).values(role=role.value).returning(UserModel)
+        stmt = (
+            update(UserModel)
+            .where(UserModel.id == user_id)
+            .values(role=role.value)
+            .returning(UserModel)
+        )
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
         return _to_entity(row) if row is not None else None
 
     async def update_status(self, user_id: UUID, status: UserStatus) -> User | None:
-        stmt = update(UserModel).where(UserModel.id == user_id).values(status=status.value).returning(UserModel)
+        stmt = (
+            update(UserModel)
+            .where(UserModel.id == user_id)
+            .values(status=status.value)
+            .returning(UserModel)
+        )
         result = await self._session.execute(stmt)
         row = result.scalar_one_or_none()
         return _to_entity(row) if row is not None else None
 
     async def get_profile(self, user_id: UUID) -> UserProfile | None:
-        result = await self._session.execute(select(UserProfileModel).where(UserProfileModel.user_id == user_id))
+        result = await self._session.execute(
+            select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+        )
         row = result.scalar_one_or_none()
         return _profile_entity(row) if row is not None else None
 
@@ -267,7 +288,9 @@ class SqlAlchemyUserRepository(UserRepository):
         phone_number: PhoneNumber | None,
         now: datetime,
     ) -> UserProfile | None:
-        result = await self._session.execute(select(UserProfileModel).where(UserProfileModel.user_id == user_id))
+        result = await self._session.execute(
+            select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+        )
         row = result.scalar_one_or_none()
         if row is None:
             return None
@@ -291,7 +314,9 @@ class SqlAlchemyUserRepository(UserRepository):
         avatar_object_key: str,
         now: datetime,
     ) -> UserProfile | None:
-        result = await self._session.execute(select(UserProfileModel).where(UserProfileModel.user_id == user_id))
+        result = await self._session.execute(
+            select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+        )
         row = result.scalar_one_or_none()
         if row is None:
             return None
@@ -302,7 +327,9 @@ class SqlAlchemyUserRepository(UserRepository):
         return _profile_entity(row)
 
     async def clear_avatar(self, *, user_id: UUID, now: datetime) -> UserProfile | None:
-        result = await self._session.execute(select(UserProfileModel).where(UserProfileModel.user_id == user_id))
+        result = await self._session.execute(
+            select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+        )
         row = result.scalar_one_or_none()
         if row is None:
             return None

@@ -6,21 +6,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import SqlAlchemyUnitOfWork, get_db
 from app.modules.auth.domain.repositories import AuthRepository
 from app.modules.auth.infrastructure.sqlalchemy_repositories import SqlAlchemyAuthRepository
-from app.modules.users.application.use_cases.approve_user_deletion_request import ApproveUserDeletionRequestUseCase
+from app.modules.users.application.use_cases.approve_user_deletion_request import (
+    ApproveUserDeletionRequestUseCase,
+)
 from app.modules.users.application.use_cases.change_user_role import ChangeUserRoleUseCase
 from app.modules.users.application.use_cases.change_user_status import ChangeUserStatusUseCase
-from app.modules.users.application.use_cases.create_user_preferences import CreateUserPreferencesUseCase
+from app.modules.users.application.use_cases.create_user_preferences import (
+    CreateUserPreferencesUseCase,
+)
 from app.modules.users.application.use_cases.create_user_profile import CreateUserProfileUseCase
 from app.modules.users.application.use_cases.get_current_user import GetCurrentUserUseCase
-from app.modules.users.application.use_cases.get_current_user_profile import GetCurrentUserProfileUseCase
-from app.modules.users.application.use_cases.get_user_preferences import GetUserPreferencesUseCase
+from app.modules.users.application.use_cases.get_current_user_profile import (
+    GetCurrentUserProfileUseCase,
+)
 from app.modules.users.application.use_cases.get_user_by_id import GetUserByIdUseCase
+from app.modules.users.application.use_cases.get_user_preferences import GetUserPreferencesUseCase
 from app.modules.users.application.use_cases.get_user_profile_by_id import GetUserProfileByIdUseCase
 from app.modules.users.application.use_cases.get_users import GetUsersUseCase
-from app.modules.users.application.use_cases.request_account_deletion import RequestAccountDeletionUseCase
 from app.modules.users.application.use_cases.remove_user_avatar import RemoveUserAvatarUseCase
+from app.modules.users.application.use_cases.request_account_deletion import (
+    RequestAccountDeletionUseCase,
+)
 from app.modules.users.application.use_cases.update_user_avatar import UpdateUserAvatarUseCase
-from app.modules.users.application.use_cases.update_user_preferences import UpdateUserPreferencesUseCase
+from app.modules.users.application.use_cases.update_user_preferences import (
+    UpdateUserPreferencesUseCase,
+)
 from app.modules.users.application.use_cases.update_user_profile import UpdateUserProfileUseCase
 from app.modules.users.domain.repositories import UserRepository
 from app.modules.users.domain.services import AvatarStorageService
@@ -44,7 +54,9 @@ def get_users_use_case(repo: UserRepository = Depends(get_user_repository)) -> G
     return GetUsersUseCase(repo)
 
 
-def get_user_by_id_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetUserByIdUseCase:
+def get_user_by_id_use_case(
+    repo: UserRepository = Depends(get_user_repository),
+) -> GetUserByIdUseCase:
     return GetUserByIdUseCase(repo)
 
 
@@ -54,7 +66,9 @@ def get_user_profile_by_id_use_case(
     return GetUserProfileByIdUseCase(repo)
 
 
-def get_current_user_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetCurrentUserUseCase:
+def get_current_user_use_case(
+    repo: UserRepository = Depends(get_user_repository),
+) -> GetCurrentUserUseCase:
     return GetCurrentUserUseCase(repo)
 
 
@@ -108,7 +122,9 @@ def remove_user_avatar_use_case(
     return RemoveUserAvatarUseCase(repo, storage, SqlAlchemyUnitOfWork(session))
 
 
-def get_user_preferences_use_case(repo: UserRepository = Depends(get_user_repository)) -> GetUserPreferencesUseCase:
+def get_user_preferences_use_case(
+    repo: UserRepository = Depends(get_user_repository),
+) -> GetUserPreferencesUseCase:
     return GetUserPreferencesUseCase(repo)
 
 
@@ -153,15 +169,33 @@ GetCurrentUserProfileUseCaseDep = Annotated[
     Depends(get_current_user_profile_use_case),
 ]
 ChangeUserRoleUseCaseDep = Annotated[ChangeUserRoleUseCase, Depends(change_user_role_use_case)]
-ChangeUserStatusUseCaseDep = Annotated[ChangeUserStatusUseCase, Depends(change_user_status_use_case)]
-CreateUserProfileUseCaseDep = Annotated[CreateUserProfileUseCase, Depends(create_user_profile_use_case)]
-UpdateUserProfileUseCaseDep = Annotated[UpdateUserProfileUseCase, Depends(update_user_profile_use_case)]
-UpdateUserAvatarUseCaseDep = Annotated[UpdateUserAvatarUseCase, Depends(update_user_avatar_use_case)]
-RemoveUserAvatarUseCaseDep = Annotated[RemoveUserAvatarUseCase, Depends(remove_user_avatar_use_case)]
-GetUserPreferencesUseCaseDep = Annotated[GetUserPreferencesUseCase, Depends(get_user_preferences_use_case)]
-CreateUserPreferencesUseCaseDep = Annotated[CreateUserPreferencesUseCase, Depends(create_user_preferences_use_case)]
-UpdateUserPreferencesUseCaseDep = Annotated[UpdateUserPreferencesUseCase, Depends(update_user_preferences_use_case)]
-RequestAccountDeletionUseCaseDep = Annotated[RequestAccountDeletionUseCase, Depends(request_account_deletion_use_case)]
+ChangeUserStatusUseCaseDep = Annotated[
+    ChangeUserStatusUseCase, Depends(change_user_status_use_case)
+]
+CreateUserProfileUseCaseDep = Annotated[
+    CreateUserProfileUseCase, Depends(create_user_profile_use_case)
+]
+UpdateUserProfileUseCaseDep = Annotated[
+    UpdateUserProfileUseCase, Depends(update_user_profile_use_case)
+]
+UpdateUserAvatarUseCaseDep = Annotated[
+    UpdateUserAvatarUseCase, Depends(update_user_avatar_use_case)
+]
+RemoveUserAvatarUseCaseDep = Annotated[
+    RemoveUserAvatarUseCase, Depends(remove_user_avatar_use_case)
+]
+GetUserPreferencesUseCaseDep = Annotated[
+    GetUserPreferencesUseCase, Depends(get_user_preferences_use_case)
+]
+CreateUserPreferencesUseCaseDep = Annotated[
+    CreateUserPreferencesUseCase, Depends(create_user_preferences_use_case)
+]
+UpdateUserPreferencesUseCaseDep = Annotated[
+    UpdateUserPreferencesUseCase, Depends(update_user_preferences_use_case)
+]
+RequestAccountDeletionUseCaseDep = Annotated[
+    RequestAccountDeletionUseCase, Depends(request_account_deletion_use_case)
+]
 ApproveUserDeletionRequestUseCaseDep = Annotated[
     ApproveUserDeletionRequestUseCase,
     Depends(approve_user_deletion_request_use_case),

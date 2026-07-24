@@ -1,7 +1,10 @@
 from uuid import UUID
 
 from app.modules.users.application.dto import UserDto
-from app.modules.users.application.use_cases._permissions import get_admin_actor, ensure_can_manage_target
+from app.modules.users.application.use_cases._permissions import (
+    ensure_can_manage_target,
+    get_admin_actor,
+)
 from app.modules.users.domain.exceptions import UserNotFoundError
 from app.modules.users.domain.repositories import UserRepository
 

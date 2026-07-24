@@ -33,5 +33,7 @@ def locale_from_request(request: Request) -> str:
         return DEFAULT_LOCALE
 
     choices.sort(reverse=True)
-    negotiated = negotiate_locale([locale for _, locale in choices], _SUPPORTED_LOCALE_LIST, sep="_")
+    negotiated = negotiate_locale(
+        [locale for _, locale in choices], _SUPPORTED_LOCALE_LIST, sep="_"
+    )
     return normalize_locale(negotiated)

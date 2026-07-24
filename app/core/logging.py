@@ -38,8 +38,7 @@ def configure_logging(level: str) -> None:
             "formatters": {
                 "default": {
                     "format": (
-                        "%(asctime)s %(levelname)s [%(name)s] "
-                        "request_id=%(request_id)s %(message)s"
+                        "%(asctime)s %(levelname)s [%(name)s] request_id=%(request_id)s %(message)s"
                     ),
                     "datefmt": "%Y-%m-%d %H:%M:%S",
                 },

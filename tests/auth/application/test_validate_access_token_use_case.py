@@ -6,7 +6,11 @@ from app.common.pagination.schemas import SortingMethod
 from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserSession
 from app.modules.auth.domain.enums import TokenType
-from app.modules.auth.domain.exceptions import InvalidTokenError, SessionNotFoundError, SessionRevokedError
+from app.modules.auth.domain.exceptions import (
+    InvalidTokenError,
+    SessionNotFoundError,
+    SessionRevokedError,
+)
 
 
 class TokenServiceStub:
@@ -145,7 +149,11 @@ def run_use_case(use_case: ValidateAccessTokenUseCase) -> tuple[UUID, UUID]:
 
 def test_validate_access_token_returns_user_and_session_ids() -> None:
     session = make_session()
-    payload: dict[str, object] = {"typ": TokenType.ACCESS.value, "sub": str(session.user_id), "sid": str(session.id)}
+    payload: dict[str, object] = {
+        "typ": TokenType.ACCESS.value,
+        "sub": str(session.user_id),
+        "sid": str(session.id),
+    }
     use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
 
     user_id, session_id = run_use_case(use_case)
@@ -156,7 +164,11 @@ def test_validate_access_token_returns_user_and_session_ids() -> None:
 
 def test_validate_access_token_rejects_refresh_token_type() -> None:
     session = make_session()
-    payload: dict[str, object] = {"typ": TokenType.REFRESH.value, "sub": str(session.user_id), "sid": str(session.id)}
+    payload: dict[str, object] = {
+        "typ": TokenType.REFRESH.value,
+        "sub": str(session.user_id),
+        "sid": str(session.id),
+    }
     use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
 
     try:
@@ -169,7 +181,11 @@ def test_validate_access_token_rejects_refresh_token_type() -> None:
 
 def test_validate_access_token_rejects_missing_session() -> None:
     session_id = uuid4()
-    payload: dict[str, object] = {"typ": TokenType.ACCESS.value, "sub": str(uuid4()), "sid": str(session_id)}
+    payload: dict[str, object] = {
+        "typ": TokenType.ACCESS.value,
+        "sub": str(uuid4()),
+        "sid": str(session_id),
+    }
     use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(None), TokenServiceStub(payload))
 
     try:
@@ -182,7 +198,11 @@ def test_validate_access_token_rejects_missing_session() -> None:
 
 def test_validate_access_token_rejects_revoked_session() -> None:
     session = make_session(revoked=True)
-    payload: dict[str, object] = {"typ": TokenType.ACCESS.value, "sub": str(session.user_id), "sid": str(session.id)}
+    payload: dict[str, object] = {
+        "typ": TokenType.ACCESS.value,
+        "sub": str(session.user_id),
+        "sid": str(session.id),
+    }
     use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
 
     try:

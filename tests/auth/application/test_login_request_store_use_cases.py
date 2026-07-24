@@ -9,9 +9,9 @@ from app.modules.auth.application.use_cases.login_user import LoginUserUseCase
 from app.modules.auth.application.use_cases.verify_email import VerifyEmailUseCase
 from app.modules.auth.domain.entities import LoginRequest, UserSession
 from app.modules.auth.domain.exceptions import InvalidOtpError
-from app.modules.users.domain.repositories import UserRepository
 from app.modules.users.domain.entities import User
 from app.modules.users.domain.enums import UserRole, UserStatus
+from app.modules.users.domain.repositories import UserRepository
 
 
 class UnitOfWorkSpy:
@@ -51,7 +51,9 @@ class OtpProviderSpy:
     async def send_otp_code(self, *, email: str, code: str, expires_in_seconds: int) -> None:
         if self.fail_send:
             raise RuntimeError("email provider failed")
-        self.sent_codes.append({"email": email, "code": code, "expires_in_seconds": expires_in_seconds})
+        self.sent_codes.append(
+            {"email": email, "code": code, "expires_in_seconds": expires_in_seconds}
+        )
 
 
 class TokenServiceStub:
@@ -265,7 +267,9 @@ def execute_login(use_case: LoginUserUseCase, *, email: str = "USER@EXAMPLE.COM"
     return asyncio.run(use_case.execute(email, make_device()))
 
 
-def execute_verify(use_case: VerifyEmailUseCase, *, email: str, code: str, request_id: str) -> TokenPairDto:
+def execute_verify(
+    use_case: VerifyEmailUseCase, *, email: str, code: str, request_id: str
+) -> TokenPairDto:
     return asyncio.run(use_case.execute(email, code, request_id))
 
 
@@ -298,7 +302,9 @@ def test_login_user_writes_pending_otp_to_login_request_store() -> None:
     assert created["request_id"] == result.login_request_id
     assert created["otp_hash"] == "otp:654321"
     assert created["attempts_left"] == 3
-    assert otp_provider.sent_codes == [{"email": "user@example.com", "code": "654321", "expires_in_seconds": 300}]
+    assert otp_provider.sent_codes == [
+        {"email": "user@example.com", "code": "654321", "expires_in_seconds": 300}
+    ]
     assert unit_of_work.commits == 1
     assert unit_of_work.rollbacks == 0
 
@@ -398,7 +404,9 @@ def test_verify_email_marks_login_request_consumed_and_creates_session() -> None
         dev_otp_code=None,
     )
 
-    result = execute_verify(use_case, email="USER@EXAMPLE.COM", code="111111", request_id=request_id)
+    result = execute_verify(
+        use_case, email="USER@EXAMPLE.COM", code="111111", request_id=request_id
+    )
 
     assert result.access_token.startswith(f"access:{user.id}:")
     assert result.refresh_token.startswith(f"refresh:{user.id}:")

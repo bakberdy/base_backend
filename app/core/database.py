@@ -3,7 +3,12 @@ from typing import Protocol
 
 from fastapi import Request
 from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -40,7 +45,7 @@ def create_session_maker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession
     return async_sessionmaker[AsyncSession](engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession]:
     session_maker: async_sessionmaker[AsyncSession] = request.app.state.session_maker
     async with session_maker() as session:
         yield session
