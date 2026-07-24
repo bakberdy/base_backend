@@ -192,7 +192,7 @@ sudo docker compose logs -f nginx
 curl https://api.example.com/health
 ```
 
-Database, Redis, and uploads are stored on that instance in Docker volumes. Configure EC2/EBS
+Database, Redis, and uploads are stored on that instance in Docker volumes. Configure EC2
 snapshots and database backups before relying on this layout for production data.
 
 ## Local development and validation
