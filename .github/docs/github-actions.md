@@ -4,7 +4,7 @@ The deployment model is intentionally limited to two existing EC2 instances:
 
 | GitHub environment | Branch | EC2 purpose |
 | --- | --- | --- |
-| `development` | `develop` | Development API |
+| `development` | `development` | Development API |
 | `production` | `main` | Production API |
 
 The repository has three workflows:
@@ -122,7 +122,7 @@ Pull requests run validation only.
 PR -> project-validation.yml
 ```
 
-Push to `develop`:
+Push to `development`:
 
 ```text
 validate -> publish sha-<full-commit-sha> -> deploy development EC2
