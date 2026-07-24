@@ -3,14 +3,15 @@ name: Publish Backend Image
 on:
   push:
     branches:
+      - develop
       - main
-      - master
     tags:
       - "v*"
   workflow_dispatch:
 
 permissions:
   contents: read
+  id-token: write
   packages: write
 
 env:
@@ -28,6 +29,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -44,14 +48,34 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=sha-
+            type=raw,value=development-latest,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=production-latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=sha-,format=long
             type=ref,event=tag
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-development:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: publish
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      target_environment: development
+      image_tag: sha-${{ github.sha }}
+    secrets: inherit
+
+  deploy-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: publish
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      target_environment: production
+      image_tag: sha-${{ github.sha }}
+    secrets: inherit

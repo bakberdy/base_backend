@@ -185,7 +185,7 @@ jobs:
           python -m uvicorn main:app --host 127.0.0.1 --port 8000 &
           uvicorn_pid=$!
           trap 'kill "${uvicorn_pid}"' EXIT
-          for attempt in {1..30}; do
+          for _ in {1..30}; do
             if curl --fail --silent --show-error \
               http://127.0.0.1:8000/health; then
               exit 0

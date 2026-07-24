@@ -1,329 +1,205 @@
-# Backend Deploy
+# Deploy backend to two EC2 instances
 
-## Local Development
+## Target architecture
 
-Install dependencies once:
+```text
+develop branch                         main branch
+      |                                     |
+      v                                     v
+GHCR immutable image                 GHCR immutable image
+      |                                     |
+      v                                     v
+Development EC2                     Production EC2
+  nginx                                  nginx
+  Uvicorn/FastAPI                        Uvicorn/FastAPI
+  PostgreSQL                             PostgreSQL
+  Redis                                  Redis
+```
+
+There is no Terraform, ECS, Fargate, ECR, RDS, ElastiCache, or load balancer configuration in
+this repository. Each environment is one independent EC2 instance with its own Docker volumes
+and server-local secrets.
+
+## 1. Prepare the two EC2 instances
+
+Use Amazon Linux 2023 or Ubuntu. Assign a stable Elastic IP to each instance.
+
+Each Security Group should allow:
+
+| Port | Source |
+| --- | --- |
+| `80` | `0.0.0.0/0` |
+| `443` | `0.0.0.0/0` |
+| `22` | Optional; only your trusted IP as `/32` |
+
+Do not open PostgreSQL `5432`, Redis `6379`, or Uvicorn `8000` in the Security Group.
+
+Attach an EC2 IAM role containing:
+
+```text
+AmazonSSMManagedInstanceCore
+```
+
+Verify both instances appear as managed nodes in AWS Systems Manager.
+
+## 2. Configure GitHub
+
+Follow `.github/docs/github-actions.md`.
+
+Required configuration:
+
+```text
+Secret:
+  AWS_ROLE_TO_ASSUME
+
+Repository variables:
+  AWS_REGION
+  PROJECT_NAME=mobile-app-backend
+
+GitHub environment development:
+  EC2_INSTANCE_ID=<development-instance-id>
+
+GitHub environment production:
+  EC2_INSTANCE_ID=<production-instance-id>
+```
+
+Make the `ghcr.io/<owner>/<repo>` package public so EC2 can pull it without a stored registry
+token.
+
+## 3. First deployment
+
+Create and push the development branch:
 
 ```bash
-make install
+git switch -c develop
+git push -u origin develop
 ```
 
-Start local stack:
+The first successful workflow will bootstrap the development EC2 automatically.
+
+Push the reviewed commit to `main` to bootstrap production:
 
 ```bash
-make dev
+git switch main
+git merge --ff-only develop
+git push origin main
 ```
 
-Open:
+Runtime directories:
 
 ```text
-http://localhost:8080
-https://localhost:8443
-http://localhost:8000/docs
+/opt/mobile-app-backend-development
+/opt/mobile-app-backend-production
 ```
 
-Local HTTPS uses a self-signed certificate, so browser warnings are expected.
+The first deployment creates `.env` with random values for:
 
-Stop local stack:
+```text
+JWT_SECRET_KEY
+POSTGRES_PASSWORD
+```
+
+It never uploads local `config.production.env` or application secrets from GitHub.
+
+## 4. Configure each server
+
+Open an SSM session or connect with SSH, then edit:
 
 ```bash
-make stop
+sudo nano /opt/mobile-app-backend-development/.env
+sudo nano /opt/mobile-app-backend-production/.env
 ```
 
-Run tests:
+Set environment-specific values:
 
-```bash
-make test-all
+```env
+CORS_ALLOWED_ORIGINS=https://your-frontend.example
+OTP_EMAIL_ENABLED=true
+SMTP_HOST=...
+SMTP_PORT=...
+SMTP_USERNAME=...
+SMTP_PASSWORD=...
+SMTP_SENDER_EMAIL=...
+SMTP_SENDER_NAME=Mobile App
 ```
 
-Run the local validation suite used by GitHub:
-
-```bash
-make validate
-```
-
-Local env file:
-
-```text
-config/run/config.development.env
-```
-
-## GitHub Project Validation
-
-Detailed GitHub Actions setup is documented in:
-
-```text
-.github/docs/github-actions.md
-```
-
-The reusable validation workflow is:
-
-```text
-.github/workflows/project-validation.yml
-```
-
-It runs automatically for pull requests with these actions:
-
-```text
-opened, synchronize, reopened, ready_for_review
-```
-
-It also supports `workflow_call`, so the image publishing workflow can reuse the complete
-validation suite.
-
-The workflow checks:
-
-```text
-Ruff formatting
-Ruff lint rules
-mypy types
-unit tests
-integration tests with PostgreSQL and Redis
-real Uvicorn startup and /health
-Docker image build
-Gitleaks secret scanning
-Git whitespace errors
-```
-
-Use it locally before pushing backend code changes:
-
-```bash
-cd backend
-make install
-make validate
-```
-
-If GitHub fails with an import error that does not fail locally, first check that the dependency is listed in `requirements.txt`, then rerun the same command with a clean environment:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m mypy
-```
-
-## GitHub Image
-
-Push to GitHub. The workflow publishes:
-
-```text
-ghcr.io/<github-owner>/<github-repo>:latest
-```
-
-The workflow is:
-
-```text
-.github/workflows/publish-image.yml
-```
-
-It runs on pushes to `main` or `master`, tags matching `v*`, and manual dispatch.
-
-Before the Docker image is built and pushed, `publish-image.yml` calls
-`project-validation.yml`. The image is not published if any validation job fails.
-
-If the package is private, login on EC2:
-
-```bash
-echo <github-token-with-read-packages> | sudo docker login ghcr.io -u <github-username> --password-stdin
-```
-
-## GitHub App Deploy
-
-The workflow is:
-
-```text
-.github/workflows/deploy-app.yml
-```
-
-It does not store app env files in GitHub. Each AWS environment keeps its own `.env` on the EC2 host:
-
-```text
-production  -> /opt/mobile-app-backend-production/.env
-development -> /opt/mobile-app-backend-development/.env
-```
-
-The workflow input `target_environment` selects which EC2 host to deploy by AWS tags:
-
-```text
-Project=mobile-app-backend
-Environment=production
-```
-
-or:
-
-```text
-Project=mobile-app-backend
-Environment=development
-```
-
-Deploy production:
-
-```text
-GitHub -> Actions -> Deploy Backend App -> Run workflow
-target_environment=production
-image_tag=latest
-```
-
-Deploy development:
-
-```text
-GitHub -> Actions -> Deploy Backend App -> Run workflow
-target_environment=development
-image_tag=latest
-```
-
-For exact deploys, use the immutable image tag from `publish-image.yml`:
-
-```text
-image_tag=sha-<commit-sha>
-```
-
-The workflow updates only `CONTAINER_IMAGE` in the selected server `.env`, then runs:
-
-```bash
-docker compose pull app
-docker compose up -d app
-```
-
-Run Terraform apply once per environment before using app deploy, because the EC2 instance profile needs AWS SSM permissions:
-
-```text
-GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=production -> apply=true
-GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=development -> apply=true
-```
-
-## AWS Production
-
-Domain convention:
-
-```text
-production  -> api.bakberdi.dev
-development -> dev.bakberdi.dev
-```
-
-Prepare Terraform vars:
-
-```bash
-cd infra/aws
-cp terraform.tfvars.example terraform.tfvars
-```
-
-Edit:
-
-```hcl
-aws_region        = "eu-central-1"
-key_name          = "your-ec2-key-pair-name"
-allowed_ssh_cidr  = "your-public-ip/32"
-domain_name       = "api.bakberdi.dev"
-certificate_email = "admin@example.com"
-container_image   = "ghcr.io/<github-owner>/<github-repo>:latest"
-```
-
-Apply:
-
-```bash
-terraform init
-terraform apply
-```
-
-Point DNS:
-
-```text
-api.bakberdi.dev A <production terraform elastic_ip output>
-dev.bakberdi.dev A <development terraform elastic_ip output>
-```
-
-Connect:
-
-```bash
-ssh -i ~/.ssh/<key-file>.pem ec2-user@<elastic_ip>
-```
-
-Server env file:
+Apply changes:
 
 ```bash
 cd /opt/mobile-app-backend-production
-sudo nano .env
-```
-
-Restart after env changes:
-
-```bash
 sudo docker compose up -d
-```
-
-Deploy a new image:
-
-```bash
-cd /opt/mobile-app-backend-production
-sudo docker compose pull app
-sudo docker compose up -d app
-```
-
-Check:
-
-```bash
 sudo docker compose ps
 sudo docker compose logs --tail=100 app
-curl http://localhost/health
-curl -I https://api.bakberdi.dev/health
 ```
 
-For local Terraform files, use:
+Use the development directory on the development instance.
 
-```bash
-cp infra/aws/terraform.production.tfvars.example infra/aws/terraform.tfvars
-```
+## 5. Domain and HTTPS
 
-or:
-
-```bash
-cp infra/aws/terraform.development.tfvars.example infra/aws/terraform.tfvars
-```
-
-## GitHub Terraform Apply
-
-The workflow is:
+Create DNS A records:
 
 ```text
-.github/workflows/terraform.yml
+dev-api.example.com -> development Elastic IP
+api.example.com     -> production Elastic IP
 ```
 
-It runs `terraform plan` on pull requests and pushes. It runs `terraform apply` only by manual dispatch with `apply=true`.
+Wait until DNS resolves to the correct instance, then run the helper installed by deployment:
 
-Before enabling apply in GitHub, configure a remote Terraform backend such as S3 plus DynamoDB locking. Do not use local Terraform state in GitHub Actions.
+```bash
+sudo /opt/mobile-app-backend-development/enable_https.sh \
+  development \
+  dev-api.example.com \
+  admin@example.com
 
-Create an AWS IAM OIDC provider for GitHub, then create an IAM role that GitHub Actions can assume. Trust policy shape:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:<github-owner>/<github-repo>:*"
-        }
-      }
-    }
-  ]
-}
+sudo /opt/mobile-app-backend-production/enable_https.sh \
+  production \
+  api.example.com \
+  admin@example.com
 ```
 
-Add the GitHub Actions secret and repository variables from `.github/docs/github-actions.md`.
+The helper obtains a Let's Encrypt certificate, switches nginx to it, installs daily renewal,
+and checks `/health`.
 
-The workflow uses Terraform workspaces named `production` and `development` so the two environments do not share the same state.
+## 6. Normal releases
 
-Manual apply:
+Development:
 
 ```text
-GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=production -> apply=true
-GitHub -> Actions -> Terraform AWS -> Run workflow -> target_environment=development -> apply=true
+push develop -> validate -> publish immutable image -> deploy development
+```
+
+Production:
+
+```text
+push main -> validate -> publish immutable image -> deploy production
+```
+
+For rollback, manually run `Deploy Backend to EC2` with an older immutable tag:
+
+```text
+sha-<full-commit-sha>
+```
+
+## 7. Operations
+
+Inspect an environment:
+
+```bash
+cd /opt/mobile-app-backend-production
+sudo docker compose ps
+sudo docker compose logs -f app
+sudo docker compose logs -f nginx
+curl https://api.example.com/health
+```
+
+Database, Redis, and uploads are stored on that instance in Docker volumes. Configure EC2/EBS
+snapshots and database backups before relying on this layout for production data.
+
+## Local development and validation
+
+```bash
+make install
+make dev
+make validate
+make test-all
 ```
