@@ -3,7 +3,7 @@
 ## Target architecture
 
 ```text
-develop branch                         main branch
+development branch                     main branch
       |                                     |
       v                                     v
 GHCR immutable image                 GHCR immutable image
@@ -71,8 +71,8 @@ token.
 Create and push the development branch:
 
 ```bash
-git switch -c develop
-git push -u origin develop
+git switch -c development
+git push -u origin development
 ```
 
 The first successful workflow will bootstrap the development EC2 automatically.
@@ -81,7 +81,7 @@ Push the reviewed commit to `main` to bootstrap production:
 
 ```bash
 git switch main
-git merge --ff-only develop
+git merge --ff-only development
 git push origin main
 ```
 
@@ -165,7 +165,7 @@ and checks `/health`.
 Development:
 
 ```text
-push develop -> validate -> publish immutable image -> deploy development
+push development -> validate -> publish immutable image -> deploy development
 ```
 
 Production:
@@ -192,7 +192,7 @@ sudo docker compose logs -f nginx
 curl https://api.example.com/health
 ```
 
-Database, Redis, and uploads are stored on that instance in Docker volumes. Configure EC2/EBS
+Database, Redis, and uploads are stored on that instance in Docker volumes. Configure EC2
 snapshots and database backups before relying on this layout for production data.
 
 ## Local development and validation

@@ -32,7 +32,10 @@ app_directory="/opt/${project_name}-${environment}"
 
 install_docker() {
   if command -v dnf >/dev/null 2>&1; then
-    dnf install -y docker curl openssl cronie
+    dnf install -y docker openssl cronie
+    if ! command -v curl >/dev/null 2>&1; then
+      dnf install -y curl-minimal
+    fi
     systemctl enable --now crond
   elif command -v apt-get >/dev/null 2>&1; then
     apt-get update
