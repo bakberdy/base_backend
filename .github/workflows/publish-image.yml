@@ -11,8 +11,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
-  packages: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -24,6 +22,9 @@ jobs:
   publish:
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
@@ -65,17 +66,25 @@ jobs:
   deploy-development:
     if: github.event_name == 'push' && github.ref == 'refs/heads/development'
     needs: publish
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/deploy-app.yml
     with:
       target_environment: development
       image_tag: sha-${{ github.sha }}
-    secrets: inherit
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
   deploy-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: publish
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/deploy-app.yml
     with:
       target_environment: production
       image_tag: sha-${{ github.sha }}
-    secrets: inherit
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
