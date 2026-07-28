@@ -23,7 +23,6 @@ ENV/
 !.env.example
 !env.example
 !/config/run/config.example.env
-!/config/run/config.test.env
 
 # Private keys, certificates, keystores, and signing material
 *.pem
