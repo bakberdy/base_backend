@@ -50,7 +50,8 @@ def main() -> None:
 
     import uvicorn
 
-    uvicorn.run("main:app", host="127.0.0.1", port=8000)
+    port = int(os.getenv("UVICORN_SMOKE_PORT", "8000"))
+    uvicorn.run("main:app", host="127.0.0.1", port=port)
 
 
 if __name__ == "__main__":

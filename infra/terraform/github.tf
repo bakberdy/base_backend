@@ -4,7 +4,7 @@ resource "github_actions_repository_permissions" "backend" {
   repository           = var.github_repository
   enabled              = true
   allowed_actions      = "all"
-  sha_pinning_required = false
+  sha_pinning_required = true
 }
 
 resource "github_repository_environment" "backend" {
@@ -21,6 +21,17 @@ resource "github_actions_environment_variable" "instance_id" {
   environment   = github_repository_environment.backend[each.key].environment
   variable_name = "EC2_INSTANCE_ID"
   value         = aws_instance.backend[each.key].id
+}
+
+resource "github_actions_environment_variable" "deploy_health_url" {
+  for_each = var.manage_github_configuration ? local.environments : {}
+
+  repository    = var.github_repository
+  environment   = github_repository_environment.backend[each.key].environment
+  variable_name = "DEPLOY_HEALTH_URL"
+  value = contains(keys(var.environment_domains), each.key) ? (
+    "https://${var.environment_domains[each.key]}/health"
+  ) : "http://${aws_eip.backend[each.key].public_ip}/health"
 }
 
 resource "github_actions_variable" "repository" {

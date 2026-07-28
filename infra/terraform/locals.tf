@@ -10,9 +10,10 @@ locals {
   ec2_key_name = var.ssh_public_key != null ? aws_key_pair.backend[0].key_name : var.existing_ssh_key_name
 
   github_repository_variables = {
-    AWS_ECR_PUBLISH_ROLE_ARN = aws_iam_role.github_ecr_publisher.arn
-    AWS_REGION               = var.aws_region
-    ECR_REPOSITORY_URI       = aws_ecr_repository.backend.repository_url
-    PROJECT_NAME             = var.project_name
+    AWS_ECR_PUBLISH_ROLE_ARN    = aws_iam_role.github_ecr_publisher.arn
+    AWS_ECR_SIGNING_PROFILE_ARN = aws_signer_signing_profile.backend.arn
+    AWS_REGION                  = var.aws_region
+    ECR_REPOSITORY_URI          = aws_ecr_repository.backend.repository_url
+    PROJECT_NAME                = var.project_name
   }
 }

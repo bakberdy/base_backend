@@ -22,8 +22,8 @@ esac
   echo "PROJECT_NAME may contain only lowercase letters, digits, and hyphens." >&2
   exit 1
 }
-[[ "${container_image}" =~ ^[A-Za-z0-9._/@:-]+$ ]] || {
-  echo "Container image contains unsupported characters." >&2
+[[ "${container_image}" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$ ]] || {
+  echo "Container image must be an exact private ECR repository@sha256 digest." >&2
   exit 1
 }
 [[ "${aws_region}" =~ ^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$ ]] || {

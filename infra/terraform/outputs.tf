@@ -33,6 +33,11 @@ output "github_ecr_publish_role_arn" {
   value       = aws_iam_role.github_ecr_publisher.arn
 }
 
+output "ecr_signing_profile_arn" {
+  description = "AWS Signer profile used by ECR managed signing."
+  value       = aws_signer_signing_profile.backend.arn
+}
+
 output "domain_records" {
   description = "Route53 records when route53_zone_id and environment_domains are configured."
   value       = { for environment, record in aws_route53_record.backend : environment => record.fqdn }

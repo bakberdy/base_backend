@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "exceptions": [
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-120",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2025-183",
+      "reason": "The advisory currently has no published fixed version and must remain visible.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-175",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-176",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-177",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-178",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-179",
+      "reason": "PyJWT upgrade requires compatibility validation of the authentication flows.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pyjwt",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-1845",
+      "reason": "The pytest major upgrade must be validated against the complete test suite.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pytest",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-161",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-248",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-249",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-1941",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-1943",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-2280",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-2281",
+      "reason": "Starlette is constrained by FastAPI and requires a coordinated framework upgrade.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-starlette",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "configuration",
+      "id": "DS-0002",
+      "paths": ["Dockerfile"],
+      "reason": "Non-root conversion is explicitly tracked in the container-hardening backlog.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#container-non-root",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0132",
+      "paths": ["infra/terraform/bootstrap/main.tf"],
+      "reason": "The existing Terraform state bucket uses SSE-S3 and KMS migration needs a recovery plan.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#state-kms",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0131",
+      "paths": ["infra/terraform/compute.tf"],
+      "reason": "The adopted EC2 root volumes are unencrypted and replacement requires a migration window.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#root-volume-encryption",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0104",
+      "paths": ["infra/terraform/network.tf"],
+      "reason": "Current public EC2 hosts need outbound package, ECR, and certificate access.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#restricted-egress",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0164",
+      "paths": ["infra/terraform/network.tf"],
+      "reason": "The current single-subnet architecture intentionally assigns public addresses.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#private-subnet",
+      "expires_on": "2026-09-30"
+    }
+  ]
+}

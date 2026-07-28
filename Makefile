@@ -6,7 +6,7 @@ PROD_ENV_FILE = config/run/config.production.env
 TEST_COMPOSE_ENV = ENVIRONMENT=test APP_ENV_FILE=/dev/null POSTGRES_SCHEME=postgresql POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres POSTGRES_DB=mobile_app_test POSTGRES_DOCKER_HOST=postgres POSTGRES_PORT=5432 REDIS_SCHEME=redis REDIS_DOCKER_HOST=redis REDIS_PORT=6379 REDIS_DB=0
 
 .DEFAULT_GOAL := help
-.PHONY: help install check-docker dev prod run stop format format-check lint type-check test-unit test test-all validate
+.PHONY: help install check-docker dev prod run stop format format-check lint type-check test-unit test-integration smoke-uvicorn runtime-check container-smoke compose-check test test-all validate
 
 help:
 	@echo "Available commands:"
@@ -17,6 +17,9 @@ help:
 	@echo "  make stop   # stop local stack"
 	@echo "  make format # format Python sources"
 	@echo "  make validate # run format, lint, mypy, and unit-test checks"
+	@echo "  make runtime-check # run integration tests and Uvicorn smoke"
+	@echo "  make container-smoke # run the locally built image and check /health"
+	@echo "  make compose-check # render Compose and reject dangerous runtime privileges"
 	@echo "  make test-all # run all tests with PostgreSQL and Redis"
 
 install:
@@ -55,6 +58,31 @@ type-check:
 
 test-unit:
 	ENVIRONMENT=test $(PYTHON) -m pytest -m "not integration"
+
+test-integration:
+	RUN_INTEGRATION_TESTS=1 ENVIRONMENT=test $(PYTHON) -m pytest -m integration
+
+smoke-uvicorn:
+	@set -eu; \
+		smoke_port="$${UVICORN_SMOKE_PORT:-8000}"; \
+		$(PYTHON) -m tests.mock_environment & \
+		uvicorn_pid=$$!; \
+		trap 'kill "$$uvicorn_pid" 2>/dev/null || true' EXIT; \
+		for attempt in $$(seq 1 30); do \
+			if curl --fail --silent --show-error "http://127.0.0.1:$${smoke_port}/health"; then \
+				exit 0; \
+			fi; \
+			sleep 1; \
+		done; \
+		exit 1
+
+runtime-check: test-integration smoke-uvicorn
+
+container-smoke: check-docker
+	bash tool/ci/container_smoke.sh "$(LOCAL_IMAGE)"
+
+compose-check:
+	$(TEST_COMPOSE_ENV) APP_ENV_FILE=config/run/config.example.env CONTAINER_IMAGE=template-backend:policy docker compose --profile '*' config --format json | $(PYTHON) tool/ci/compose_policy.py
 
 test: test-unit
 

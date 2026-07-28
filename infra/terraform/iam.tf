@@ -90,6 +90,16 @@ data "aws_iam_policy_document" "github_deploy" {
     actions   = ["ssm:GetCommandInvocation"]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "VerifyApprovedBackendImage"
+    effect = "Allow"
+    actions = [
+      "ecr:DescribeImages",
+      "ecr:DescribeImageSigningStatus",
+    ]
+    resources = [aws_ecr_repository.backend.arn]
+  }
 }
 
 resource "aws_iam_role_policy" "github_deploy" {
@@ -147,12 +157,20 @@ data "aws_iam_policy_document" "github_ecr_publish" {
       "ecr:BatchGetImage",
       "ecr:CompleteLayerUpload",
       "ecr:DescribeImages",
+      "ecr:DescribeImageSigningStatus",
       "ecr:GetDownloadUrlForLayer",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage",
       "ecr:UploadLayerPart",
     ]
     resources = [aws_ecr_repository.backend.arn]
+  }
+
+  statement {
+    sid       = "SignBackendImage"
+    effect    = "Allow"
+    actions   = ["signer:SignPayload"]
+    resources = [aws_signer_signing_profile.backend.arn]
   }
 }
 

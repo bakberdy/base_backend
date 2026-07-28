@@ -2,6 +2,15 @@ name: Project Validation
 
 on:
   workflow_call:
+    inputs:
+      source_sha:
+        description: "Full source commit SHA"
+        required: true
+        type: string
+    outputs:
+      status:
+        description: "Application validation result"
+        value: ${{ jobs.application-gate.outputs.status }}
 
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -18,247 +27,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  format:
-    name: Format
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Check formatting
-        run: python -m ruff format --check .
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Run Ruff
-        run: python -m ruff check .
-
-  analyze:
-    name: Type Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Run mypy
-        run: python -m mypy
-
-  tests:
-    name: Unit Tests
+  quality:
+    name: Application Quality
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Run unit tests
-        run: python -m pytest -m "not integration"
-
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mobile_app_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d mobile_app_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Run integration tests
-        env:
-          RUN_INTEGRATION_TESTS: "1"
-        run: python -m pytest -m integration
-
-  uvicorn:
-    name: Uvicorn Smoke Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: mobile_app_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d mobile_app_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Start Uvicorn and check health
-        run: |
-          python -m tests.mock_environment &
-          uvicorn_pid=$!
-          trap 'kill "${uvicorn_pid}"' EXIT
-          for _ in {1..30}; do
-            if curl --fail --silent --show-error \
-              http://127.0.0.1:8000/health; then
-              exit 0
-            fi
-            sleep 1
-          done
-          exit 1
-
-  docker:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Build backend image
-        run: docker build --tag mobile-app-backend:validation .
-
-  security:
-    name: Sensitive Data & Credentials
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Reject tracked sensitive or local files
-        run: |
-          set -euo pipefail
-          tracked_ignored="$(git ls-files --cached --ignored --exclude-standard)"
-          if [[ -n "${tracked_ignored}" ]]; then
-            echo "::error::Files matched by .gitignore are already tracked:"
-            printf '%s\n' "${tracked_ignored}"
-            echo "::error::Remove them from the Git index before merging."
-            exit 1
-          fi
-
-      - name: Install Gitleaks
-        env:
-          GITLEAKS_VERSION: 8.30.1
-          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
-        run: |
-          archive="${RUNNER_TEMP}/gitleaks.tar.gz"
-          curl --fail --silent --show-error --location --retry 3 \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            --output "${archive}"
-          echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum --check --status
-          tar --extract --gzip --file "${archive}" --directory "${RUNNER_TEMP}" gitleaks
-
-      - name: Scan repository for secrets
-        run: >
-          "${RUNNER_TEMP}/gitleaks" git
-          --redact
-          --no-banner
-          --verbose
-          .
-
-  diff-check:
-    name: Diff Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Check whitespace errors
@@ -270,3 +48,111 @@ jobs:
           else
             git show --check --format= HEAD
           fi
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run static checks
+        run: make PYTHON=python format-check lint type-check
+
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: make PYTHON=python test-unit
+
+  runtime:
+    name: Runtime Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mobile_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mobile_app_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run runtime checks
+        run: make PYTHON=python runtime-check
+
+  application-gate:
+    name: Application Gate
+    if: always()
+    needs:
+      - quality
+      - unit
+      - runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      status: ${{ steps.result.outputs.status }}
+    steps:
+      - name: Require all application checks
+        id: result
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          UNIT_RESULT: ${{ needs.unit.result }}
+          RUNTIME_RESULT: ${{ needs.runtime.result }}
+        run: |
+          if [[ "${QUALITY_RESULT}" != "success" ||
+                "${UNIT_RESULT}" != "success" ||
+                "${RUNTIME_RESULT}" != "success" ]]; then
+            echo "::error::Application checks did not all succeed."
+            exit 1
+          fi
+          echo "status=success" >>"${GITHUB_OUTPUT}"
