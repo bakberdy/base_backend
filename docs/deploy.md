@@ -6,7 +6,7 @@
 development branch                     main branch
       |                                     |
       v                                     v
-GHCR immutable image                 GHCR immutable image
+Private ECR immutable image         Private ECR immutable image
       |                                     |
       v                                     v
 Development EC2                     Production EC2
@@ -16,11 +16,20 @@ Development EC2                     Production EC2
   Redis                                  Redis
 ```
 
-There is no Terraform, ECS, Fargate, ECR, RDS, ElastiCache, or load balancer configuration in
-this repository. Each environment is one independent EC2 instance with its own Docker volumes
-and server-local secrets.
+Each environment is one independent EC2 instance with its own Docker volumes and server-local
+secrets. The reusable Terraform root under `infra/terraform` manages the AWS platform, private ECR
+repository, least-privilege image publish/pull roles, and GitHub Actions configuration. Images are
+published only to private ECR and EC2 authenticates with its instance role before every pull.
 
-## 1. Prepare the two EC2 instances
+## 1. Provision or adopt infrastructure
+
+Follow `infra/terraform/README.md`.
+
+For a new project, Terraform creates the VPC, two EC2 instances, Elastic IPs, IAM roles, ECR, and
+GitHub environments. For this existing project, use `terraform.current.tfvars.example` so the
+declarative imports adopt the active resources without recreating them.
+
+## 2. Verify the two EC2 instances
 
 Use Amazon Linux 2023 or Ubuntu. Assign a stable Elastic IP to each instance.
 
@@ -42,11 +51,11 @@ AmazonSSMManagedInstanceCore
 
 Verify both instances appear as managed nodes in AWS Systems Manager.
 
-## 2. Configure GitHub
+## 3. Configure GitHub
 
 Follow `.github/docs/github-actions.md`.
 
-Required configuration:
+Terraform manages this configuration:
 
 ```text
 Secret:
@@ -54,6 +63,8 @@ Secret:
 
 Repository variables:
   AWS_REGION
+  AWS_ECR_PUBLISH_ROLE_ARN
+  ECR_REPOSITORY_URI
   PROJECT_NAME=mobile-app-backend
 
 GitHub environment development:
@@ -63,10 +74,11 @@ GitHub environment production:
   EC2_INSTANCE_ID=<production-instance-id>
 ```
 
-Make the `ghcr.io/<owner>/<repo>` package public so EC2 can pull it without a stored registry
-token.
+No long-lived registry password is stored in GitHub or on EC2. GitHub publishes through OIDC and
+each EC2 instance obtains a short-lived ECR authorization token from its instance profile, pulls
+the image, and logs Docker out again.
 
-## 3. First deployment
+## 4. First deployment
 
 Create and push the development branch:
 
@@ -101,7 +113,7 @@ POSTGRES_PASSWORD
 
 It never uploads local `config.production.env` or application secrets from GitHub.
 
-## 4. Configure each server
+## 5. Configure each server
 
 Open an SSM session or connect with SSH, then edit:
 
@@ -134,7 +146,7 @@ sudo docker compose logs --tail=100 app
 
 Use the development directory on the development instance.
 
-## 5. Domain and HTTPS
+## 6. Domain and HTTPS
 
 Create DNS A records:
 
@@ -160,7 +172,7 @@ sudo /opt/mobile-app-backend-production/enable_https.sh \
 The helper obtains a Let's Encrypt certificate, switches nginx to it, installs daily renewal,
 and checks `/health`.
 
-## 6. Normal releases
+## 7. Normal releases
 
 Development:
 
@@ -174,13 +186,13 @@ Production:
 push main -> validate -> publish immutable image -> deploy production
 ```
 
-For rollback, manually run `Deploy Backend to EC2` with an older immutable tag:
+For rollback, manually run `Deploy Backend to EC2` with an older immutable ECR tag:
 
 ```text
 sha-<full-commit-sha>
 ```
 
-## 7. Operations
+## 8. Operations
 
 Inspect an environment:
 

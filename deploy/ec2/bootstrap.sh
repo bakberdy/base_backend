@@ -9,6 +9,7 @@ fi
 environment="${1:?Usage: bootstrap.sh <development|production> <container-image>}"
 container_image="${2:?Usage: bootstrap.sh <development|production> <container-image>}"
 project_name="${PROJECT_NAME:-mobile-app-backend}"
+aws_region="${AWS_REGION:?AWS_REGION is required for private ECR authentication.}"
 
 case "${environment}" in
   development | production) ;;
@@ -23,6 +24,15 @@ esac
 }
 [[ "${container_image}" =~ ^[A-Za-z0-9._/@:-]+$ ]] || {
   echo "Container image contains unsupported characters." >&2
+  exit 1
+}
+[[ "${aws_region}" =~ ^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$ ]] || {
+  echo "AWS_REGION must be a valid AWS region name." >&2
+  exit 1
+}
+ecr_registry="${container_image%%/*}"
+[[ "${ecr_registry}" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?$ ]] || {
+  echo "Container image must belong to a private Amazon ECR registry." >&2
   exit 1
 }
 
@@ -72,6 +82,22 @@ install_compose_plugin() {
   docker compose version
 }
 
+install_aws_cli() {
+  if command -v aws >/dev/null 2>&1; then
+    return
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    dnf install -y awscli2 || dnf install -y awscli
+  elif command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y awscli
+  else
+    echo "Unable to install AWS CLI on this host." >&2
+    exit 1
+  fi
+}
+
 upsert_env() {
   local key="$1"
   local value="$2"
@@ -90,6 +116,10 @@ else
   systemctl enable --now docker
 fi
 install_compose_plugin
+install_aws_cli
+
+aws ecr get-login-password --region "${aws_region}" |
+  docker login --username AWS --password-stdin "${ecr_registry}"
 
 install -d -m 0750 "${app_directory}/nginx"
 install -m 0644 "${source_directory}/docker-compose.yml" "${app_directory}/docker-compose.yml"
@@ -163,5 +193,6 @@ upsert_env "CONTAINER_IMAGE" "${container_image}" "${env_file}"
 
 cd "${app_directory}"
 docker compose pull
+docker logout "${ecr_registry}" >/dev/null
 docker compose up -d --remove-orphans
 docker compose ps

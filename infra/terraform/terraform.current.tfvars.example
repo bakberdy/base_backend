@@ -1,0 +1,63 @@
+aws_region            = "eu-central-1"
+availability_zone     = "eu-central-1a"
+project_name          = "template-backend"
+infrastructure_prefix = "template"
+
+vpc_cidr           = "10.40.0.0/16"
+public_subnet_cidr = "10.40.1.0/24"
+
+environment_config = {
+  development = {
+    instance_type              = "t3.micro"
+    root_volume_size           = 30
+    eip_name                   = "template-backend-develop-eip"
+    security_group_description = "Development backend HTTP and HTTPS"
+    disable_api_stop           = false
+    disable_api_termination    = false
+  }
+  production = {
+    instance_type              = "t3.micro"
+    root_volume_size           = 50
+    eip_name                   = "template-backend-production-eip"
+    security_group_description = "Production backend HTTP and HTTPS"
+    disable_api_stop           = true
+    disable_api_termination    = true
+  }
+}
+
+existing_ssh_key_name = "template-backend-key"
+ssh_public_key        = null
+ssh_ingress_cidr      = null
+root_volume_encrypted = false
+
+github_owner      = "bakberdy"
+github_repository = "base_backend"
+
+github_oidc_provider_arn             = "arn:aws:iam::227755137079:oidc-provider/token.actions.githubusercontent.com"
+adopt_existing_github_configuration = true
+existing_github_repository_variables = [
+  "AWS_REGION",
+  "PROJECT_NAME",
+]
+
+existing_resource_ids = {
+  vpc_id                     = "vpc-038b117396a282114"
+  internet_gateway_id        = "igw-099459d72af4fdbc9"
+  subnet_id                  = "subnet-058009701fe0af8d4"
+  route_table_id             = "rtb-00978d924e5678875"
+  security_group_ids = {
+    development = "sg-0af181644bed394a5"
+    production  = "sg-07fab9311ca3e3d33"
+  }
+  instance_ids = {
+    development = "i-073f69c95a1fc82c1"
+    production  = "i-0a25f89590558cfef"
+  }
+  eip_allocation_ids = {
+    development = "eipalloc-048b2c71546f1def6"
+    production  = "eipalloc-08d3e2d37e0e28610"
+  }
+}
+
+route53_zone_id    = null
+environment_domains = {}

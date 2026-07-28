@@ -5,8 +5,6 @@ on:
     branches:
       - development
       - main
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -24,37 +22,78 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Validate ECR configuration
+        env:
+          AWS_ECR_PUBLISH_ROLE_ARN: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+        run: |
+          set -euo pipefail
+          test -n "${AWS_REGION}" || {
+            echo "::error::AWS_REGION repository variable is not configured."
+            exit 1
+          }
+          [[ "${AWS_ECR_PUBLISH_ROLE_ARN}" =~ ^arn:[^:]+:iam::[0-9]{12}:role/.+$ ]] || {
+            echo "::error::AWS_ECR_PUBLISH_ROLE_ARN repository variable is missing or invalid."
+            exit 1
+          }
+          [[ "${ECR_REPOSITORY_URI}" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?/[a-z0-9._/-]+$ ]] || {
+            echo "::error::ECR_REPOSITORY_URI repository variable is missing or invalid."
+            exit 1
+          }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Check immutable image
+        id: image
+        env:
+          ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          repository_name="${ECR_REPOSITORY_URI#*/}"
+          if aws ecr describe-images \
+            --repository-name "${repository_name}" \
+            --image-ids "imageTag=${IMAGE_TAG}" \
+            >/dev/null 2>&1; then
+            echo "exists=true" >>"${GITHUB_OUTPUT}"
+            echo "Reusing ${ECR_REPOSITORY_URI}:${IMAGE_TAG}."
+          else
+            echo "exists=false" >>"${GITHUB_OUTPUT}"
+          fi
+
       - name: Set up QEMU
+        if: steps.image.outputs.exists != 'true'
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
+        if: steps.image.outputs.exists != 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Extract image metadata
+        if: steps.image.outputs.exists != 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ vars.ECR_REPOSITORY_URI }}
           tags: |
-            type=raw,value=development-latest,enable=${{ github.ref == 'refs/heads/development' }}
-            type=raw,value=production-latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=sha-,format=long
-            type=ref,event=tag
 
-      - name: Build and push
+      - name: Build and push immutable ECR image
+        if: steps.image.outputs.exists != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .

@@ -220,6 +220,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Reject tracked sensitive or local files
+        run: |
+          set -euo pipefail
+          tracked_ignored="$(git ls-files --cached --ignored --exclude-standard)"
+          if [[ -n "${tracked_ignored}" ]]; then
+            echo "::error::Files matched by .gitignore are already tracked:"
+            printf '%s\n' "${tracked_ignored}"
+            echo "::error::Remove them from the Git index before merging."
+            exit 1
+          fi
+
       - name: Install Gitleaks
         env:
           GITLEAKS_VERSION: 8.30.1

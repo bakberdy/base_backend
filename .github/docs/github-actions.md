@@ -1,6 +1,6 @@
 # GitHub Actions for two EC2 environments
 
-The deployment model is intentionally limited to two existing EC2 instances:
+The deployment model uses two EC2 instances managed or adopted by `infra/terraform`:
 
 | GitHub environment | Branch | EC2 purpose |
 | --- | --- | --- |
@@ -12,25 +12,31 @@ The repository has three workflows:
 | Workflow | Purpose |
 | --- | --- |
 | `project-validation.yml` | Formatting, lint, types, tests, Uvicorn, Docker, secrets, and diff checks. |
-| `publish-image.yml` | Builds an immutable GHCR image and automatically deploys the branch environment. |
+| `publish-image.yml` | Builds one immutable private ECR image and deploys the branch environment. |
 | `deploy-app.yml` | Reusable and manual deployment to one exact EC2 instance over AWS SSM. |
 
 ## GitHub configuration
 
-Create this repository secret:
+Terraform creates this repository secret:
 
 | Secret | Value |
 | --- | --- |
 | `AWS_ROLE_TO_ASSUME` | ARN of the IAM role trusted by this GitHub repository through OIDC. |
 
-Create these repository variables:
+Terraform creates these repository variables:
 
 | Variable | Example |
 | --- | --- |
+| `AWS_ECR_PUBLISH_ROLE_ARN` | `arn:aws:iam::<account-id>:role/<project>-github-ecr-publisher` |
 | `AWS_REGION` | `eu-central-1` |
+| `ECR_REPOSITORY_URI` | `<account-id>.dkr.ecr.eu-central-1.amazonaws.com/<project>` |
 | `PROJECT_NAME` | `mobile-app-backend` |
 
-Create two GitHub environments under **Settings -> Environments**:
+All repository variables are created and maintained by the Terraform root in `infra/terraform`.
+Image publication fails closed when its ECR configuration is missing; there is no public-registry
+fallback.
+
+Terraform creates two GitHub environments:
 
 ### `development`
 
@@ -57,7 +63,7 @@ Both EC2 instances need:
 
 1. SSM Agent installed and running.
 2. An EC2 IAM instance profile containing `AmazonSSMManagedInstanceCore`.
-3. Outbound internet access to AWS SSM, Docker Hub, GitHub, and GHCR.
+3. Outbound internet access to AWS SSM, ECR, Docker Hub, and GitHub.
 4. Security Group ingress for public HTTP `80` and HTTPS `443`.
 5. Optional SSH `22` restricted to a trusted `/32` address.
 
@@ -145,8 +151,8 @@ Manual deployment or rollback:
 ```text
 Actions -> Deploy Backend to EC2 -> Run workflow
 target_environment=development|production
-image_tag=sha-<full-commit-sha>|v1.2.3|development-latest|production-latest
+image_tag=sha-<full-commit-sha>
 ```
 
-The GHCR package must be public. If it is private, log each instance into GHCR once with a
-token that has only `read:packages`.
+The EC2 bootstrap logs Docker into the private ECR registry for every deployment using the
+instance profile, pulls the image, and immediately logs out. No static registry token is required.

@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       image_tag:
-        description: "Immutable GHCR image tag"
+        description: "Immutable ECR image tag"
         required: true
         type: string
     secrets:
@@ -26,7 +26,7 @@ on:
           - development
           - production
       image_tag:
-        description: "GHCR image tag, for example sha-<full-commit-sha>"
+        description: "ECR image tag, for example sha-<full-commit-sha>"
         required: true
         type: string
 
@@ -56,6 +56,7 @@ jobs:
 
       - name: Validate deployment configuration
         env:
+          ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
           IMAGE_TAG: ${{ inputs.image_tag }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
@@ -74,6 +75,10 @@ jobs:
           }
           [[ "${IMAGE_TAG}" =~ ^[A-Za-z0-9._-]+$ ]] || {
             echo "::error::Image tag contains unsupported characters."
+            exit 1
+          }
+          [[ "${ECR_REPOSITORY_URI}" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?/[a-z0-9._/-]+$ ]] || {
+            echo "::error::ECR_REPOSITORY_URI repository variable is missing or invalid."
             exit 1
           }
           test -n "${AWS_REGION}" || {
@@ -97,7 +102,7 @@ jobs:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
           IMAGE_TAG: ${{ inputs.image_tag }}
-          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+          IMAGE_REPOSITORY: ${{ vars.ECR_REPOSITORY_URI }}
         run: |
           set -euo pipefail
           app_directory="/opt/${PROJECT_NAME}-${TARGET_ENVIRONMENT}"
@@ -111,6 +116,7 @@ jobs:
 
           commands_json="$(jq -n \
             --arg app_directory "${app_directory}" \
+            --arg aws_region "${AWS_REGION}" \
             --arg bootstrap_base64 "${bootstrap_base64}" \
             --arg compose_base64 "${compose_base64}" \
             --arg container_image "${container_image}" \
@@ -127,7 +133,7 @@ jobs:
               "printf '\''%s'\'' " + $bootstrap_base64 + " | base64 --decode > " + $remote_directory + "/deploy/ec2/bootstrap.sh",
               "printf '\''%s'\'' " + $https_base64 + " | base64 --decode > " + $remote_directory + "/deploy/ec2/enable_https.sh",
               "chmod 0755 " + $remote_directory + "/deploy/ec2/*.sh",
-              "PROJECT_NAME=" + $project_name + " bash " + $remote_directory + "/deploy/ec2/bootstrap.sh " + $environment + " " + $container_image,
+              "AWS_REGION=" + $aws_region + " PROJECT_NAME=" + $project_name + " bash " + $remote_directory + "/deploy/ec2/bootstrap.sh " + $environment + " " + $container_image,
               "install -m 0755 " + $remote_directory + "/deploy/ec2/enable_https.sh " + $app_directory + "/enable_https.sh",
               "rm -rf " + $remote_directory,
               "cd " + $app_directory,
