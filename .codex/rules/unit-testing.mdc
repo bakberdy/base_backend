@@ -5,6 +5,16 @@ globs: app/**/*.py,tests/**/*.py
 
 # Unit Testing
 
+- Unit tests must use only synthetic test data created in the test suite.
+- Unit tests must never use, copy, import, or depend on real development, staging, or production
+  data.
+- Never use real user identities, email addresses, phone numbers, credentials, access tokens,
+  uploaded files, database dumps, or captured production payloads in unit tests.
+- Replace external dependencies and side effects with mocks, fakes, stubs, factories, or
+  deterministic fixtures.
+- Test fixtures must contain obviously fictional values and must be safe to commit to the
+  repository.
+
 - Unit tests should mainly target:
   - use cases
   - domain business rules
