@@ -3,6 +3,7 @@ LOCAL_IMAGE ?= mobile-app-backend:local
 
 DEV_ENV_FILE = config/run/config.development.env
 PROD_ENV_FILE = config/run/config.production.env
+TEST_COMPOSE_ENV = ENVIRONMENT=test APP_ENV_FILE=/dev/null POSTGRES_SCHEME=postgresql POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres POSTGRES_DB=mobile_app_test POSTGRES_DOCKER_HOST=postgres POSTGRES_PORT=5432 REDIS_SCHEME=redis REDIS_DOCKER_HOST=redis REDIS_PORT=6379 REDIS_DB=0
 
 .DEFAULT_GOAL := help
 .PHONY: help install check-docker dev prod run stop format format-check lint type-check test-unit test test-all validate
@@ -58,8 +59,8 @@ test-unit:
 test: test-unit
 
 test-all: check-docker
-	set -a; . config/run/config.test.env; set +a; APP_ENV_FILE=config/run/config.test.env docker compose up -d postgres redis
-	set -a; . config/run/config.test.env; set +a; APP_ENV_FILE=config/run/config.test.env docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '\''$$POSTGRES_DB'\''" | grep -q 1 || createdb -U "$$POSTGRES_USER" "$$POSTGRES_DB"'
-	set -a; . config/run/config.test.env; set +a; RUN_INTEGRATION_TESTS=1 $(PYTHON) -m pytest
+	$(TEST_COMPOSE_ENV) docker compose up -d postgres redis
+	$(TEST_COMPOSE_ENV) docker compose exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '\''$$POSTGRES_DB'\''" | grep -q 1 || createdb -U "$$POSTGRES_USER" "$$POSTGRES_DB"'
+	RUN_INTEGRATION_TESTS=1 $(PYTHON) -m pytest
 
 validate: format-check lint type-check test-unit

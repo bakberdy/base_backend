@@ -185,7 +185,7 @@ jobs:
 
       - name: Start Uvicorn and check health
         run: |
-          python -m uvicorn main:app --host 127.0.0.1 --port 8000 &
+          python -m tests.mock_environment &
           uvicorn_pid=$!
           trap 'kill "${uvicorn_pid}"' EXIT
           for _ in {1..30}; do
