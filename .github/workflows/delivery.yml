@@ -28,6 +28,9 @@ jobs:
 
   container:
     name: Container Validation
+    permissions:
+      contents: read
+      id-token: write # Maximum permission required by the skipped release mode in the reusable workflow.
     uses: ./.github/workflows/container-image.yml
     with:
       mode: pr
