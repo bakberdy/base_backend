@@ -103,7 +103,7 @@ jobs:
       - name: Record dependency evidence
         env:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
-        run: printf '### Dependency audit passed for `%s`\n' "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
+        run: printf "### Dependency audit passed for \`%s\`\n" "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
 
   workflows:
     name: Workflow Security
@@ -145,7 +145,7 @@ jobs:
       - name: Record workflow evidence
         env:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
-        run: printf '### actionlint and zizmor passed for `%s`\n' "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
+        run: printf "### actionlint and zizmor passed for \`%s\`\n" "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
 
   configuration:
     name: Configuration Security
@@ -196,7 +196,7 @@ jobs:
       - name: Record configuration evidence
         env:
           SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
-        run: printf '### Trivy configuration policy passed for `%s`\n' "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
+        run: printf "### Trivy configuration policy passed for \`%s\`\n" "${SOURCE_SHA}" >>"${GITHUB_STEP_SUMMARY}"
 
   repository-security-gate:
     name: Repository Security Gate
