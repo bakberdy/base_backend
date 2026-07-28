@@ -19,9 +19,6 @@ on:
         description: "Run-scoped security report identifier"
         value: ${{ jobs.repository-security-gate.outputs.report_id }}
 
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
 permissions:
   contents: read
 

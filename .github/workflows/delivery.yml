@@ -1,0 +1,59 @@
+name: Delivery
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delivery-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    name: Application Validation
+    uses: ./.github/workflows/project-validation.yml
+    with:
+      source_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+
+  repository-security:
+    name: Repository Security
+    uses: ./.github/workflows/repository-security.yml
+    with:
+      source_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      upload_sarif: false
+
+  container:
+    name: Container Validation
+    uses: ./.github/workflows/container-image.yml
+    with:
+      mode: pr
+      source_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      platform: linux/amd64
+
+  delivery-gate:
+    name: Delivery Gate
+    if: always()
+    needs:
+      - validation
+      - repository-security
+      - container
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require latest commit checks
+        env:
+          CONTAINER_RESULT: ${{ needs.container.result }}
+          REPOSITORY_SECURITY_RESULT: ${{ needs.repository-security.result }}
+          VALIDATION_RESULT: ${{ needs.validation.result }}
+        run: |
+          set -euo pipefail
+          if [[ "${VALIDATION_RESULT}" != "success" ||
+                "${REPOSITORY_SECURITY_RESULT}" != "success" ||
+                "${CONTAINER_RESULT}" != "success" ]]; then
+            echo "::error::Latest pull request checks did not all succeed."
+            exit 1
+          fi

@@ -12,9 +12,6 @@ on:
         description: "Application validation result"
         value: ${{ jobs.application-gate.outputs.status }}
 
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-
 permissions:
   contents: read
 
