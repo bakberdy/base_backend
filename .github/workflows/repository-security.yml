@@ -116,12 +116,10 @@ jobs:
           ref: ${{ inputs.source_sha || github.sha }}
           persist-credentials: false
 
-      - name: Install pinned workflow analyzers
+      - name: Install pinned actionlint
         env:
           ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
           ACTIONLINT_VERSION: 1.7.12
-          ZIZMOR_SHA256: e87b67160194884e375a46a12c57ccc904f762b53845f254fab7f17d98809c09
-          ZIZMOR_VERSION: 1.28.0
         run: |
           set -euo pipefail
           actionlint_archive="${RUNNER_TEMP}/actionlint.tar.gz"
@@ -132,21 +130,17 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/actionlint"
           tar --extract --gzip --file "${actionlint_archive}" --directory "${RUNNER_TEMP}/actionlint"
 
-          zizmor_archive="${RUNNER_TEMP}/zizmor.tar.gz"
-          curl --fail --silent --show-error --location --retry 3 \
-            "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-x86_64-unknown-linux-gnu.tar.gz" \
-            --output "${zizmor_archive}"
-          echo "${ZIZMOR_SHA256}  ${zizmor_archive}" | sha256sum --check --status
-          mkdir -p "${RUNNER_TEMP}/zizmor"
-          tar --extract --gzip --file "${zizmor_archive}" --directory "${RUNNER_TEMP}/zizmor"
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Validate workflow syntax and expressions
         run: |
           "${RUNNER_TEMP}/actionlint/actionlint" -color .github/workflows/*.yml
 
       - name: Enforce workflow security policy
-        run: |
-          "${RUNNER_TEMP}/zizmor/zizmor" --persona pedantic .github/workflows
+        env:
+          ZIZMOR_VERSION: 1.28.0
+        run: uvx "zizmor@${ZIZMOR_VERSION}" --persona pedantic .github/workflows
 
       - name: Record workflow evidence
         env:
