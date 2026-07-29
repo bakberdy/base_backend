@@ -65,7 +65,7 @@ Delivery Gate
 Стабильный required-check context:
 
 ```text
-Delivery / Delivery Gate
+Delivery Gate
 ```
 
 Только этот агрегирующий context добавляется в branch protection. Внутренние job names могут
@@ -428,7 +428,7 @@ Stage 2 и Stage 3 имеют одну обязательную safety boundary:
 | Целевое дерево утверждено | Да. |
 | Inputs/outputs утверждены | Да. |
 | Permissions утверждены | Да. |
-| Stable required check утвержден | `Delivery / Delivery Gate`. |
+| Stable required check утвержден | `Delivery Gate`. |
 | Authoritative scanner выбран | Trivy. |
 | Digest format утвержден | `repository@sha256:<64 hex>`. |
 | Security evidence определен | Run traceability + live service verification. |
