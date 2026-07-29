@@ -5,6 +5,19 @@ globs: app/**/*.py,tests/**/*.py,docker-compose.yml,Makefile,.github/**/*.yml
 
 # Integration Testing
 
+- Integration tests must use only synthetic data created specifically for the test suite.
+- Integration tests must never use, copy, import, query, or mutate real development, staging, or
+  production data.
+- Never use production database dumps, real user identities, email addresses, phone numbers,
+  credentials, access tokens, uploaded files, or captured production payloads as test fixtures.
+- All required records must be generated through deterministic factories, builders, fixtures, or
+  helper functions and must be safe to commit to the repository.
+- Real infrastructure components are allowed only when they are isolated test instances or
+  disposable local/CI containers. Using a real database engine does not permit using real business
+  data.
+- Tests must fail safely instead of falling back to a development or production service when an
+  isolated test dependency is unavailable.
+
 - Integration tests must validate interaction between multiple real components.
 - Integration tests must verify that components work together correctly, not just in isolation.
 - Integration tests should primarily target:

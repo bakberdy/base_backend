@@ -1,0 +1,295 @@
+name: Container Image
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "Container workflow mode: pr or release"
+        required: true
+        type: string
+      source_sha:
+        description: "Full source commit SHA"
+        required: true
+        type: string
+      platform:
+        description: "Single deployable target platform"
+        required: true
+        type: string
+      repository_uri:
+        description: "Private ECR repository URI for release mode"
+        required: false
+        type: string
+    outputs:
+      source_sha:
+        description: "Source commit represented by the artifact"
+        value: ${{ jobs.container-gate.outputs.source_sha }}
+      image_digest:
+        description: "Immutable OCI digest"
+        value: ${{ jobs.container-gate.outputs.image_digest }}
+      image_reference:
+        description: "ECR repository reference by digest"
+        value: ${{ jobs.container-gate.outputs.image_reference }}
+      security_evidence_id:
+        description: "Run-scoped evidence traceability identifier"
+        value: ${{ jobs.container-gate.outputs.security_evidence_id }}
+      status:
+        description: "Container workflow result"
+        value: ${{ jobs.container-gate.outputs.status }}
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: container-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr:
+    name: PR Container
+    if: github.event_name == 'pull_request' || inputs.mode == 'pr'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Build PR image once
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: ${{ inputs.platform || 'linux/amd64' }}
+          load: true
+          push: false
+          tags: template-backend:pr-${{ inputs.source_sha || github.sha }}
+          cache-from: type=gha,scope=template-backend-linux-amd64
+          cache-to: type=gha,mode=max,scope=template-backend-linux-amd64
+
+      - name: Run container health smoke
+        env:
+          CONTAINER_SMOKE_PROJECT: template-backend-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          LOCAL_IMAGE: template-backend:pr-${{ inputs.source_sha || github.sha }}
+        run: make container-smoke
+
+  release:
+    name: Release Container
+    if: inputs.mode == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write # Required for the short-lived AWS ECR publish role.
+    outputs:
+      source_sha: ${{ steps.artifact.outputs.source_sha }}
+      image_digest: ${{ steps.artifact.outputs.image_digest }}
+      image_reference: ${{ steps.artifact.outputs.image_reference }}
+      security_evidence_id: ${{ steps.artifact.outputs.security_evidence_id }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+
+      - name: Validate release inputs
+        env:
+          ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
+          PLATFORM: ${{ inputs.platform }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::source_sha must be a full lowercase Git SHA."
+            exit 1
+          }
+          [[ "${PLATFORM}" == "linux/amd64" ]] || {
+            echo "::error::Only linux/amd64 is approved by the current EC2 baseline."
+            exit 1
+          }
+          [[ "${ECR_REPOSITORY_URI}" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com(\.cn)?/[a-z0-9._/-]+$ ]] || {
+            echo "::error::repository_uri is missing or invalid."
+            exit 1
+          }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.1.6
+
+      - name: Resolve immutable artifact
+        id: existing
+        env:
+          ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
+          IMAGE_TAG: sha-${{ inputs.source_sha }}
+        run: |
+          set -euo pipefail
+          repository_name="${ECR_REPOSITORY_URI#*/}"
+          digest="$(aws ecr describe-images \
+            --repository-name "${repository_name}" \
+            --image-ids "imageTag=${IMAGE_TAG}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text 2>/dev/null || true)"
+          if [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "exists=true" >>"${GITHUB_OUTPUT}"
+            echo "digest=${digest}" >>"${GITHUB_OUTPUT}"
+            echo "Reusing ${ECR_REPOSITORY_URI}@${digest}."
+          else
+            echo "exists=false" >>"${GITHUB_OUTPUT}"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.existing.outputs.exists != 'true'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Build and push immutable image once
+        if: steps.existing.outputs.exists != 'true'
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: ${{ inputs.platform }}
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ inputs.repository_uri }}:sha-${{ inputs.source_sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ inputs.source_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=template-backend-linux-amd64
+          cache-to: type=gha,mode=max,scope=template-backend-linux-amd64
+
+      - name: Resolve top-level release digest
+        id: top
+        env:
+          BUILD_DIGEST: ${{ steps.build.outputs.digest }}
+          EXISTING_DIGEST: ${{ steps.existing.outputs.digest }}
+          IMAGE_EXISTS: ${{ steps.existing.outputs.exists }}
+        run: |
+          set -euo pipefail
+          digest="${BUILD_DIGEST}"
+          if [[ "${IMAGE_EXISTS}" == "true" ]]; then
+            digest="${EXISTING_DIGEST}"
+          fi
+          [[ "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Build did not produce a valid immutable digest."
+            exit 1
+          }
+          echo "digest=${digest}" >>"${GITHUB_OUTPUT}"
+
+      - name: Install pinned release image scanner
+        env:
+          TRIVY_SHA256: bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
+          TRIVY_VERSION: 0.72.0
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/trivy.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            --output "${archive}"
+          echo "${TRIVY_SHA256}  ${archive}" | sha256sum --check --status
+          mkdir -p "${RUNNER_TEMP}/trivy"
+          tar --extract --gzip --file "${archive}" --directory "${RUNNER_TEMP}/trivy"
+
+      - name: Scan exact release digest with Trivy
+        env:
+          ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
+          TOP_DIGEST: ${{ steps.top.outputs.digest }}
+          TRIVY_DISABLE_TELEMETRY: "true"
+        run: |
+          set -euo pipefail
+          "${RUNNER_TEMP}/trivy/trivy" image \
+            --cache-dir "${RUNNER_TEMP}/trivy-cache" \
+            --format json \
+            --output "${RUNNER_TEMP}/trivy-image-report.json" \
+            --scanners vuln \
+            "${ECR_REPOSITORY_URI}@${TOP_DIGEST}"
+
+      - name: Enforce attestation, vulnerability, and signing policy
+        id: artifact
+        env:
+          ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
+          SIGNING_PROFILE_ARN: ${{ vars.AWS_ECR_SIGNING_PROFILE_ARN }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          TOP_DIGEST: ${{ steps.top.outputs.digest }}
+        run: |
+          set -euo pipefail
+          repository_name="${ECR_REPOSITORY_URI#*/}"
+          python3 tool/ci/ecr_image_policy.py \
+            --repository "${repository_name}" \
+            --repository-uri "${ECR_REPOSITORY_URI}" \
+            --source-sha "${SOURCE_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --top-digest "${TOP_DIGEST}" \
+            --trivy-report "${RUNNER_TEMP}/trivy-image-report.json" \
+            --trivy-version "0.72.0" \
+            --signing-profile-arn "${SIGNING_PROFILE_ARN}" \
+            --evidence "${RUNNER_TEMP}/image-security-evidence.json" \
+            --github-output "${GITHUB_OUTPUT}"
+
+      - name: Store immutable security evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: image-security-evidence-${{ inputs.source_sha }}
+          path: |
+            ${{ runner.temp }}/image-security-evidence.json
+            ${{ runner.temp }}/trivy-image-report.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Record immutable image evidence
+        run: |
+          {
+            echo "### Approved release image"
+            echo
+            echo '```json'
+            cat "${RUNNER_TEMP}/image-security-evidence.json"
+            echo '```'
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+  container-gate:
+    name: Container Gate
+    if: always()
+    needs:
+      - pr
+      - release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source_sha: ${{ needs.release.outputs.source_sha }}
+      image_digest: ${{ needs.release.outputs.image_digest }}
+      image_reference: ${{ needs.release.outputs.image_reference }}
+      security_evidence_id: ${{ needs.release.outputs.security_evidence_id }}
+      status: ${{ steps.result.outputs.status }}
+    steps:
+      - name: Require the selected container mode
+        id: result
+        env:
+          MODE: ${{ inputs.mode || 'pr' }}
+          PR_RESULT: ${{ needs.pr.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          if [[ "${MODE}" == "pr" && "${PR_RESULT}" == "success" ]]; then
+            echo "status=success" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [[ "${MODE}" == "release" && "${RELEASE_RESULT}" == "success" ]]; then
+            echo "status=success" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          echo "::error::Selected container mode did not succeed."
+          exit 1

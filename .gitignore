@@ -18,14 +18,54 @@ ENV/
 .env.*
 *.env
 *.env.*
+.envrc
+.direnv/
 !.env.example
 !env.example
-!config/run/config.*.env
+!/config/run/config.example.env
+
+# Private keys, certificates, keystores, and signing material
 *.pem
 *.key
 *.crt
+*.cer
+*.der
 *.p12
 *.pfx
+*.jks
+*.keystore
+*.ppk
+*.kdbx
+*.ovpn
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+
+# Cloud, package registry, and local authentication credentials
+.aws/
+.azure/
+.config/gcloud/
+.kube/
+.vault-token
+.npmrc
+.pypirc
+.netrc
+credentials
+credentials.json
+credentials.yaml
+credentials.yml
+credentials.toml
+credentials.ini
+application_default_credentials.json
+client_secret*.json
+service-account*.json
+*-service-account.json
+secrets.json
+secrets.yaml
+secrets.yml
+secrets.toml
+*.token
 
 # Local application data
 *.log
@@ -93,6 +133,28 @@ compose.override.yml
 # Legacy local Terraform state is intentionally preserved but no longer belongs to this repo.
 /infra/aws/
 
+# Terraform working directories, state, plans, and local variable values
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+terraform.tfstate.d/
+*.tfplan*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+**/backend.hcl
+.terraformrc
+terraform.rc
+.terraform.d/credentials.tfrc.json
+.terragrunt-cache/
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 # IDEs and editors
 .idea/
 .vscode/*
@@ -120,8 +182,3 @@ tmp/
 temp/
 *.tmp
 *.temp
-
-
-/config/run/config.*.env
-!/config/run/config.example.env
-!/config/run/config.test.env

@@ -2,80 +2,94 @@ name: Publish Backend Image
 
 on:
   push:
-    branches:
-      - development
-      - main
     tags:
-      - "v*"
-  workflow_dispatch:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
 
 permissions:
   contents: read
-  id-token: write
-  packages: write
+
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  release-contract:
+    name: Release Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      target_environment: ${{ steps.release.outputs.target_environment }}
+    steps:
+      - name: Resolve tag release target
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$ ]]; then
+            echo "target_environment=development" >>"${GITHUB_OUTPUT}"
+          elif [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "target_environment=production" >>"${GITHUB_OUTPUT}"
+          else
+            echo "::error::Unsupported release tag: ${RELEASE_TAG}"
+            exit 1
+          fi
+          main_sha="$(curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" |
+            jq --raw-output '.object.sha')"
+          [[ "${SOURCE_SHA}" == "${main_sha}" ]] || {
+            echo "::error::Release tags must point to current main HEAD ${main_sha}."
+            exit 1
+          }
+
   validate:
     uses: ./.github/workflows/project-validation.yml
+    with:
+      source_sha: ${{ github.sha }}
 
-  publish:
-    needs: validate
-    runs-on: ubuntu-latest
+  repository-security:
+    uses: ./.github/workflows/repository-security.yml
+    with:
+      source_sha: ${{ github.sha }}
+      upload_sarif: false
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+  container:
+    needs:
+      - release-contract
+      - validate
+      - repository-security
+    permissions:
+      contents: read
+      id-token: write # Passed to the reusable ECR publish workflow for AWS OIDC.
+    uses: ./.github/workflows/container-image.yml
+    with:
+      mode: release
+      source_sha: ${{ github.sha }}
+      platform: linux/amd64
+      repository_uri: ${{ vars.ECR_REPOSITORY_URI }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=raw,value=development-latest,enable=${{ github.ref == 'refs/heads/development' }}
-            type=raw,value=production-latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,prefix=sha-,format=long
-            type=ref,event=tag
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  deploy-development:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/development'
-    needs: publish
+  deploy:
+    name: Deploy ${{ needs.release-contract.outputs.target_environment }}
+    needs:
+      - release-contract
+      - container
+    permissions:
+      actions: read # Required by deploy-app to retrieve digest-bound security evidence.
+      contents: read
+      id-token: write # Required by deploy-app for the short-lived AWS deployment role.
     uses: ./.github/workflows/deploy-app.yml
     with:
-      target_environment: development
-      image_tag: sha-${{ github.sha }}
-    secrets: inherit
-
-  deploy-production:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: publish
-    uses: ./.github/workflows/deploy-app.yml
-    with:
-      target_environment: production
-      image_tag: sha-${{ github.sha }}
-    secrets: inherit
+      target_environment: ${{ needs.release-contract.outputs.target_environment }}
+      source_sha: ${{ github.sha }}
+      image_reference: ${{ needs.container.outputs.image_reference }}
+      security_evidence_id: ${{ needs.container.outputs.security_evidence_id }}
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}

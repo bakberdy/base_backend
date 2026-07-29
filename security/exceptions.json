@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "exceptions": [
+    {
+      "type": "python_dependency",
+      "id": "PYSEC-2026-1845",
+      "reason": "The pytest major upgrade must be validated against the complete test suite.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#dependency-pytest",
+      "expires_on": "2026-08-31"
+    },
+    {
+      "type": "configuration",
+      "id": "GIT-0004",
+      "paths": ["infra/terraform/github.tf"],
+      "reason": "Signed-commit enforcement requires a separate migration of existing unsigned history and contributor signing keys.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#signed-commits",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "DS-0002",
+      "paths": ["Dockerfile"],
+      "reason": "Non-root conversion is explicitly tracked in the container-hardening backlog.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#container-non-root",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0132",
+      "paths": ["infra/terraform/bootstrap/main.tf"],
+      "reason": "The existing Terraform state bucket uses SSE-S3 and KMS migration needs a recovery plan.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#state-kms",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0131",
+      "paths": ["infra/terraform/compute.tf"],
+      "reason": "The adopted EC2 root volumes are unencrypted and replacement requires a migration window.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#root-volume-encryption",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0104",
+      "paths": ["infra/terraform/network.tf"],
+      "reason": "Current public EC2 hosts need outbound package, ECR, and certificate access.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#restricted-egress",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
+      "id": "AWS-0164",
+      "paths": ["infra/terraform/network.tf"],
+      "reason": "The current single-subnet architecture intentionally assigns public addresses.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#private-subnet",
+      "expires_on": "2026-09-30"
+    }
+  ]
+}
