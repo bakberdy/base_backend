@@ -143,17 +143,13 @@ jobs:
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
-          branch="development"
-          if [[ "${TARGET_ENVIRONMENT}" == "production" ]]; then
-            branch="main"
-          fi
           current_sha="$(curl --fail --silent --show-error --location \
             --header "Authorization: Bearer ${GH_TOKEN}" \
             --header "Accept: application/vnd.github+json" \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/git/ref/heads/${branch}" |
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" |
             jq --raw-output '.object.sha')"
           [[ "${current_sha}" == "${SOURCE_SHA}" ]] || {
-            echo "::error::Stale deploy rejected: ${SOURCE_SHA} is not current ${branch} HEAD ${current_sha}."
+            echo "::error::Stale deploy rejected: ${SOURCE_SHA} is not current main HEAD ${current_sha}."
             exit 1
           }
 

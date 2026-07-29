@@ -31,6 +31,8 @@ Security baseline exceptions и remediation tasks зафиксированы в
 7. Пока Terraform создает только `x86_64` EC2, release image собирается для `linux/amd64`.
    `arm64` возвращается только при появлении реального ARM-потребителя.
 8. Новая схема сначала доказывается в `development`, затем включается для `production`.
+9. Единственная постоянная branch — защищенная `main`; обе среды выпускаются только release-тегами
+   с текущего `main` HEAD.
 
 ## 2. Что происходит сейчас
 
@@ -89,11 +91,10 @@ Push development | main
 
 Владеет:
 
-- `pull_request`;
-- push в `development` и `main`;
-- `needs`, условиями запуска и выбором GitHub environment;
+- `pull_request` в `main` и `merge_group`;
+- `needs` и условиями запуска PR checks;
 - итоговым стабильным required check;
-- передачей digest из container workflow в deploy workflow.
+- отменой устаревших runs при новом commit в том же PR.
 
 Не владеет:
 
@@ -257,7 +258,7 @@ delivery
 PR artifact не продвигается в production: после merge меняются SHA и trust context. BuildKit cache
 может ускорять trusted build, но не превращает untrusted PR image в release artifact.
 
-### Push в `development`
+### Development release tag `vX.Y.Z-dev.N`
 
 ```text
 project-validation ─┐
@@ -271,7 +272,7 @@ repository-security ├─> container build/push once
                                                         -> rollback on failure
 ```
 
-### Push в `main`
+### Production release tag `vX.Y.Z`
 
 ```text
 validation + security
@@ -283,9 +284,9 @@ validation + security
   -> health / rollback
 ```
 
-Предпочтительный release contract — продвигать в production тот же digest, который прошел
-development. Если `main` создает новый merge SHA, он получает один новый trusted build; скрытого
-повторного build внутри того же pipeline быть не должно.
+Оба тега обязаны указывать на текущий `main` HEAD. Предпочтительный release contract — продвигать
+в production тот же SHA/digest, который прошел development; скрытого повторного build внутри одного
+pipeline быть не должно.
 
 ### Manual rollback
 
@@ -560,8 +561,7 @@ release flow. Нельзя угадывать текущий digest или мо�
   существование digest и managed-signing status, сохраняет previous digest, выполняет internal и
   external health и возвращает previous digest при ошибке. Automatic и manual rollback покрыты
   локальными contract tests.
-- Этап 6 не включен: новый pipeline должен пройти development proof в GitHub Actions без
-  production deploy до удаления переходного workflow.
+- Этап 6 включен для tag routing; production tag создается только после development proof.
 - Current-state документы обновляются только на Этапе 7 после полного перехода.
 
 ## 12. Официальные источники для реализации

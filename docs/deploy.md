@@ -3,13 +3,14 @@
 ## Target architecture
 
 ```text
-development branch                     main branch
-      |                                     |
-      v                                     v
-Private ECR immutable image         Private ECR immutable image
-      |                                     |
-      v                                     v
-Development EC2                     Production EC2
+                         protected main
+                               |
+                 +-------------+-------------+
+                 |                           |
+          vX.Y.Z-dev.N                   vX.Y.Z
+                 |                           |
+                 v                           v
+          Development EC2               Production EC2
   nginx                                  nginx
   Uvicorn/FastAPI                        Uvicorn/FastAPI
   PostgreSQL                             PostgreSQL
@@ -80,21 +81,23 @@ the image, and logs Docker out again.
 
 ## 4. First deployment
 
-Create and push the development branch:
+Merge changes into protected `main` through a pull request. Direct pushes to `main` are rejected.
+Create the first development release from current `main` HEAD:
 
 ```bash
-git switch -c development
-git push -u origin development
+git switch main
+git pull --ff-only
+git tag -a v1.0.0-dev.1 -m "Development release v1.0.0-dev.1"
+git push origin v1.0.0-dev.1
 ```
 
 The first successful workflow will bootstrap the development EC2 automatically.
 
-Push the reviewed commit to `main` to bootstrap production:
+After development proof, release the same current `main` commit to production:
 
 ```bash
-git switch main
-git merge --ff-only development
-git push origin main
+git tag -a v1.0.0 -m "Production release v1.0.0"
+git push origin v1.0.0
 ```
 
 Runtime directories:
@@ -177,19 +180,19 @@ and checks `/health`.
 Development:
 
 ```text
-push development -> validate -> publish immutable image -> deploy development
+vX.Y.Z-dev.N on current main HEAD -> checks -> immutable digest -> development
 ```
 
 Production:
 
 ```text
-push main -> validate -> publish immutable image -> deploy production
+vX.Y.Z on current main HEAD -> checks -> immutable digest -> production
 ```
 
-For rollback, manually run `Deploy Backend to EC2` with an older immutable ECR tag:
+For rollback, manually run `Deploy Backend to EC2` with the approved immutable reference:
 
 ```text
-sha-<full-commit-sha>
+<repository>@sha256:<digest>
 ```
 
 ## 8. Operations

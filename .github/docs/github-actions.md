@@ -2,17 +2,20 @@
 
 The deployment model uses two EC2 instances managed or adopted by `infra/terraform`:
 
-| GitHub environment | Branch | EC2 purpose |
+| GitHub environment | Source | EC2 purpose |
 | --- | --- | --- |
-| `development` | `development` | Development API |
-| `production` | `main` | Production API |
+| `development` | `vX.Y.Z-dev.N` tag on current `main` HEAD | Development API |
+| `production` | `vX.Y.Z` tag on current `main` HEAD | Production API |
 
-The repository has three workflows:
+The repository separates orchestration from implementation:
 
 | Workflow | Purpose |
 | --- | --- |
-| `project-validation.yml` | Formatting, lint, types, tests, Uvicorn, Docker, secrets, and diff checks. |
-| `publish-image.yml` | Builds one immutable private ECR image and deploys the branch environment. |
+| `delivery.yml` | Runs all required checks for pull requests targeting `main`. |
+| `project-validation.yml` | Formatting, lint, types, tests, Uvicorn, and diff checks. |
+| `repository-security.yml` | Secrets, dependencies, workflow, and configuration security. |
+| `container-image.yml` | PR container validation or one trusted release image. |
+| `publish-image.yml` | Routes release tags to the correct environment. |
 | `deploy-app.yml` | Reusable and manual deployment to one exact EC2 instance over AWS SSM. |
 
 ## GitHub configuration
@@ -35,6 +38,10 @@ Terraform creates these repository variables:
 All repository variables are created and maintained by the Terraform root in `infra/terraform`.
 Image publication fails closed when its ECR configuration is missing; there is no public-registry
 fallback.
+
+Terraform protects `main`: direct and force pushes are blocked, pull requests are required, the
+branch must be current, and `Delivery / Delivery Gate` must succeed before merge. A newer commit
+in the same pull request cancels the older Delivery run.
 
 Terraform creates two GitHub environments:
 
@@ -122,22 +129,22 @@ Restrict the role trust policy to this repository and the two GitHub environment
 
 ## Deployment behavior
 
-Pull requests run validation only.
+Pull requests targeting `main` run all required checks without publishing or deploying.
 
 ```text
-PR -> project-validation.yml
+PR -> validation + repository security + PR container -> Delivery Gate
 ```
 
-Push to `development`:
+Development release:
 
 ```text
-validate -> publish sha-<full-commit-sha> -> deploy development EC2
+v1.2.3-dev.1 on main HEAD -> validate -> publish exact digest -> deploy development EC2
 ```
 
-Push to `main`:
+Production release:
 
 ```text
-validate -> publish sha-<full-commit-sha> -> production approval (optional)
+v1.2.3 on main HEAD -> validate -> publish/reuse exact digest -> production approval (if configured)
          -> deploy production EC2
 ```
 
@@ -151,7 +158,9 @@ Manual deployment or rollback:
 ```text
 Actions -> Deploy Backend to EC2 -> Run workflow
 target_environment=development|production
-image_tag=sha-<full-commit-sha>
+source_sha=<full-commit-sha>
+image_reference=<repository>@sha256:<digest>
+security_evidence_id=<run-id>:<attempt>:sha256
 ```
 
 The EC2 bootstrap logs Docker into the private ECR registry for every deployment using the

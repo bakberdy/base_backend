@@ -49,3 +49,27 @@ resource "github_actions_secret" "deploy_role" {
   secret_name = "AWS_ROLE_TO_ASSUME"
   value       = aws_iam_role.github_deploy.arn
 }
+
+resource "github_branch_protection" "main" {
+  count = var.manage_github_configuration ? 1 : 0
+
+  repository_id                   = var.github_repository
+  pattern                         = "main"
+  enforce_admins                  = true
+  allows_deletions                = false
+  allows_force_pushes             = false
+  require_conversation_resolution = true
+  required_linear_history         = true
+
+  required_status_checks {
+    strict = true
+    contexts = [
+      "Delivery / Delivery Gate",
+    ]
+  }
+
+  required_pull_request_reviews {
+    dismiss_stale_reviews           = true
+    required_approving_review_count = 0
+  }
+}

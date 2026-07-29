@@ -29,23 +29,24 @@
 - файл удаляется только на Этапе 6 после успешного rollback drill;
 - current-state документация обновляется только на Этапе 7.
 
-## 2. Единственный trigger owner
+## 2. Trigger ownership
 
-В целевом состоянии только `delivery.yml` напрямую реагирует на:
+`delivery.yml` напрямую реагирует только на:
 
-- `pull_request`;
-- push в `development`;
-- push в `main`.
+- `pull_request` в `main`;
+- `merge_group`.
 
-Остальные delivery workflows используют `workflow_call`.
+`publish-image.yml` отдельно владеет release tag triggers:
 
-Исключения:
+- `vX.Y.Z-dev.N` для development;
+- `vX.Y.Z` для production.
 
+- `project-validation.yml`, `repository-security.yml` и `container-image.yml` используют
+  `workflow_call`;
 - `deploy-app.yml` сохраняет `workflow_dispatch` для rollback;
 - `security-monitoring.yml` имеет `schedule` и read-only `workflow_dispatch`.
 
-Во время перехода current triggers не удаляются, пока новый flow не доказан в development.
-Новые reusable workflows сначала добавляются без конкурирующих branch triggers.
+Обе release-схемы принимают только tag, указывающий на текущий HEAD защищенной ветки `main`.
 
 ## 3. Stable required check
 
@@ -78,7 +79,7 @@ Delivery / Delivery Gate
 - допускает `skipped` только для branch-specific jobs, которые не относятся к текущему event;
 - не содержит application, Docker, security или AWS implementation.
 
-До Этапа 7 required check не включается в GitHub settings, но имя уже не меняется.
+Required check включен для защищенной ветки `main` через Terraform.
 
 ## 4. `project-validation.yml`
 
@@ -365,9 +366,9 @@ Outputs:
 
 | Event | Required jobs | Deploy |
 | --- | --- | --- |
-| Pull request | validation, repository security, container PR | no |
-| Push `development` | validation, repository security, container release | development |
-| Push `main` | validation, repository security, reuse/build release artifact | production |
+| Pull request в `main` | validation, repository security, container PR | no |
+| Tag `vX.Y.Z-dev.N` на `main` HEAD | validation, repository security, container release | development |
+| Tag `vX.Y.Z` на `main` HEAD | validation, repository security, reuse/build release artifact | production |
 
 ### Permission boundary
 
