@@ -2,18 +2,45 @@ name: Publish Backend Image
 
 on:
   push:
-    branches:
-      - development
-      - main
-  workflow_dispatch:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
 
 permissions:
   contents: read
+
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  release-contract:
+    name: Release Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      target_environment: ${{ steps.release.outputs.target_environment }}
+    steps:
+      - name: Resolve tag release target
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$ ]]; then
+            echo "target_environment=development" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if [[ "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "target_environment=production" >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          echo "::error::Unsupported release tag: ${RELEASE_TAG}"
+          exit 1
+
   validate:
     uses: ./.github/workflows/project-validation.yml
     with:
@@ -27,6 +54,7 @@ jobs:
 
   container:
     needs:
+      - release-contract
       - validate
       - repository-security
     permissions:
@@ -38,3 +66,21 @@ jobs:
       source_sha: ${{ github.sha }}
       platform: linux/amd64
       repository_uri: ${{ vars.ECR_REPOSITORY_URI }}
+
+  deploy:
+    name: Deploy ${{ needs.release-contract.outputs.target_environment }}
+    needs:
+      - release-contract
+      - container
+    permissions:
+      actions: read # Required by deploy-app to retrieve digest-bound security evidence.
+      contents: read
+      id-token: write # Required by deploy-app for the short-lived AWS deployment role.
+    uses: ./.github/workflows/deploy-app.yml
+    with:
+      target_environment: ${{ needs.release-contract.outputs.target_environment }}
+      source_sha: ${{ github.sha }}
+      image_reference: ${{ needs.container.outputs.image_reference }}
+      security_evidence_id: ${{ needs.container.outputs.security_evidence_id }}
+    secrets:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
