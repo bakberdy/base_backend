@@ -1,12 +1,11 @@
 check "route53_configuration" {
   assert {
     condition = (
-      var.route53_zone_id == null && length(var.environment_domains) == 0
+      length(var.environment_domains) == 0
       ) || (
-      var.route53_zone_id != null &&
       toset(keys(var.environment_domains)) == toset(["development", "production"])
     )
-    error_message = "Configure neither Route53 input, or configure a zone ID and both environment domains."
+    error_message = "Configure neither environment domain, or configure both development and production domains."
   }
 }
 

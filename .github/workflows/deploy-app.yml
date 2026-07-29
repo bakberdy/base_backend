@@ -311,7 +311,7 @@ jobs:
 
       - name: Roll back after failed health
         id: rollback
-        if: steps.rollout.outputs.rollout_status != 'success' || steps.external.outcome != 'success'
+        if: always() && (steps.rollout.outputs.rollout_status != 'success' || steps.external.outcome != 'success')
         env:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           PREVIOUS_IMAGE: ${{ steps.rollout.outputs.previous_image }}
