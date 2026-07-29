@@ -40,8 +40,8 @@ Image publication fails closed when its ECR configuration is missing; there is n
 fallback.
 
 Terraform protects `main`: direct and force pushes are blocked, pull requests are required, the
-branch must be current, and `Delivery / Delivery Gate` must succeed before merge. A newer commit
-in the same pull request cancels the older Delivery run.
+branch must be current, commits must be signed, and `Delivery / Delivery Gate` must succeed before
+merge. A newer commit in the same pull request cancels the older Delivery run.
 
 Terraform creates two GitHub environments:
 
