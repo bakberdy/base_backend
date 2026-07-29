@@ -23,7 +23,7 @@ GitHub:
 - Actions enabled with the current `allowed_actions = all` behavior;
 - `development` and `production` environments;
 - `EC2_INSTANCE_ID` in each environment;
-- protected `main` requiring signed pull-request merges and `Delivery / Delivery Gate`;
+- protected `main` requiring pull-request merges and `Delivery / Delivery Gate`;
 - repository variables `AWS_REGION`, `PROJECT_NAME`, `ECR_REPOSITORY_URI`, and
   `AWS_ECR_PUBLISH_ROLE_ARN`;
 - repository secret `AWS_ROLE_TO_ASSUME`, whose value is the non-credential deploy role ARN.

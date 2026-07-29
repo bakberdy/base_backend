@@ -26,6 +26,11 @@ authentication, middleware, and runtime smoke, then remove the assigned exceptio
 Move the application runtime to a dedicated non-root user while preserving upload permissions and
 container health. This is part of the container-hardening backlog. Target: 30 September 2026.
 
+## Signed commits
+
+Migrate contributors and automation to verified commit signing, then enable
+`require_signed_commits` for protected `main` and remove `GIT-0004`. Target: 30 September 2026.
+
 ## State: KMS
 
 Design and test migration of the adopted Terraform state bucket from SSE-S3 to a customer-managed

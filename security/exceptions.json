@@ -11,6 +11,15 @@
     },
     {
       "type": "configuration",
+      "id": "GIT-0004",
+      "paths": ["infra/terraform/github.tf"],
+      "reason": "Signed-commit enforcement requires a separate migration of existing unsigned history and contributor signing keys.",
+      "owner": "@bakberdy",
+      "task": "docs/security-remediation.md#signed-commits",
+      "expires_on": "2026-09-30"
+    },
+    {
+      "type": "configuration",
       "id": "DS-0002",
       "paths": ["Dockerfile"],
       "reason": "Non-root conversion is explicitly tracked in the container-hardening backlog.",
