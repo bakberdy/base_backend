@@ -17,6 +17,7 @@ from app.modules.users.api.router import router as users_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    
     settings = get_settings()
     dsn = settings.database_url
     target = dsn
