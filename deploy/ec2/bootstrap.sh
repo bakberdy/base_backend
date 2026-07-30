@@ -10,6 +10,7 @@ environment="${1:?Usage: bootstrap.sh <development|production> <container-image>
 container_image="${2:?Usage: bootstrap.sh <development|production> <container-image>}"
 project_name="${PROJECT_NAME:-mobile-app-backend}"
 aws_region="${AWS_REGION:?AWS_REGION is required for private ECR authentication.}"
+cors_allowed_origins="${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required.}"
 
 case "${environment}" in
   development | production) ;;
@@ -28,6 +29,10 @@ esac
 }
 [[ "${aws_region}" =~ ^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$ ]] || {
   echo "AWS_REGION must be a valid AWS region name." >&2
+  exit 1
+}
+[[ "${cors_allowed_origins}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(,https://[A-Za-z0-9.-]+(:[0-9]+)?)*$ ]] || {
+  echo "CORS_ALLOWED_ORIGINS must be a comma-separated list of HTTPS origins." >&2
   exit 1
 }
 ecr_registry="${container_image%%/*}"
@@ -147,7 +152,7 @@ DOMAIN_NAME=_
 NGINX_SSL_CERTIFICATE=/etc/nginx/self-signed/fullchain.pem
 NGINX_SSL_CERTIFICATE_KEY=/etc/nginx/self-signed/privkey.pem
 LOG_LEVEL=INFO
-CORS_ALLOWED_ORIGINS=
+CORS_ALLOWED_ORIGINS=${cors_allowed_origins}
 CORS_ALLOW_CREDENTIALS=false
 POSTGRES_SCHEME=postgresql
 POSTGRES_ASYNC_SCHEME=postgresql+asyncpg
@@ -190,6 +195,7 @@ fi
 
 upsert_env "ENVIRONMENT" "${environment}" "${env_file}"
 upsert_env "CONTAINER_IMAGE" "${container_image}" "${env_file}"
+upsert_env "CORS_ALLOWED_ORIGINS" "${cors_allowed_origins}" "${env_file}"
 
 cd "${app_directory}"
 docker compose pull

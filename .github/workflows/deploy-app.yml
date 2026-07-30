@@ -35,6 +35,9 @@ on:
     secrets:
       AWS_ROLE_TO_ASSUME:
         required: true
+      CORS_ALLOWED_ORIGINS:
+        description: "Environment-scoped CORS allowlist; the deploy job uses the selected environment secret"
+        required: false
 
   workflow_dispatch:
     inputs:
@@ -98,6 +101,7 @@ jobs:
         id: contract
         env:
           CONFIGURED_ECR_REPOSITORY_URI: ${{ vars.ECR_REPOSITORY_URI }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           DEPLOY_HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           IMAGE_REFERENCE: ${{ inputs.image_reference }}
@@ -132,6 +136,10 @@ jobs:
           }
           [[ "${DEPLOY_HEALTH_URL}" =~ ^https?://[^[:space:]]+/health$ ]] || {
             echo "::error::DEPLOY_HEALTH_URL must be an HTTP(S) /health URL."
+            exit 1
+          }
+          [[ "${CORS_ALLOWED_ORIGINS}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(,https://[A-Za-z0-9.-]+(:[0-9]+)?)*$ ]] || {
+            echo "::error::CORS_ALLOWED_ORIGINS must be a comma-separated list of HTTPS origins."
             exit 1
           }
 
@@ -207,6 +215,7 @@ jobs:
       - name: Send digest deployment to EC2
         id: command
         env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           IMAGE_REFERENCE: ${{ inputs.image_reference }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
@@ -227,6 +236,7 @@ jobs:
             --arg aws_region "${AWS_REGION}" \
             --arg bootstrap_base64 "${bootstrap_base64}" \
             --arg compose_base64 "${compose_base64}" \
+            --arg cors_allowed_origins "${CORS_ALLOWED_ORIGINS}" \
             --arg environment "${TARGET_ENVIRONMENT}" \
             --arg https_base64 "${https_base64}" \
             --arg image_reference "${IMAGE_REFERENCE}" \
@@ -249,7 +259,7 @@ jobs:
               "cp -f " + $remote_directory + "/deploy/ec2/*.sh " + $tools_directory + "/deploy/ec2/",
               "chmod 0755 " + $tools_directory + "/deploy/ec2/*.sh",
               "rm -rf " + $remote_directory,
-              "AWS_REGION=" + $aws_region + " PROJECT_NAME=" + $project_name + " bash " + $tools_directory + "/deploy/ec2/rollout.sh deploy " + $environment + " " + $image_reference,
+              "AWS_REGION=" + $aws_region + " CORS_ALLOWED_ORIGINS=" + $cors_allowed_origins + " PROJECT_NAME=" + $project_name + " bash " + $tools_directory + "/deploy/ec2/rollout.sh deploy " + $environment + " " + $image_reference,
               "install -m 0755 " + $tools_directory + "/deploy/ec2/enable_https.sh " + $app_directory + "/enable_https.sh"
             ]}')"
 
@@ -313,6 +323,7 @@ jobs:
         id: rollback
         if: always() && (steps.rollout.outputs.rollout_status != 'success' || steps.external.outcome != 'success')
         env:
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           PREVIOUS_IMAGE: ${{ steps.rollout.outputs.previous_image }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
@@ -326,13 +337,14 @@ jobs:
           rollout_script="/opt/${PROJECT_NAME}-${TARGET_ENVIRONMENT}/.deployment/tools/deploy/ec2/rollout.sh"
           commands_json="$(jq -n \
             --arg aws_region "${AWS_REGION}" \
+            --arg cors_allowed_origins "${CORS_ALLOWED_ORIGINS}" \
             --arg environment "${TARGET_ENVIRONMENT}" \
             --arg image_reference "${PREVIOUS_IMAGE}" \
             --arg project_name "${PROJECT_NAME}" \
             --arg rollout_script "${rollout_script}" \
             '{commands: [
               "set -euo pipefail",
-              "AWS_REGION=" + $aws_region + " PROJECT_NAME=" + $project_name + " bash " + $rollout_script + " rollback " + $environment + " " + $image_reference
+              "AWS_REGION=" + $aws_region + " CORS_ALLOWED_ORIGINS=" + $cors_allowed_origins + " PROJECT_NAME=" + $project_name + " bash " + $rollout_script + " rollback " + $environment + " " + $image_reference
             ]}')"
           rollback_id="$(aws ssm send-command \
             --instance-ids "${INSTANCE_ID}" \
