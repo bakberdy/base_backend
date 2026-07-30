@@ -97,3 +97,4 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       SMTP_SENDER_EMAIL: ${{ secrets.SMTP_SENDER_EMAIL }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}

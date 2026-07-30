@@ -137,11 +137,14 @@ Configure these encrypted repository secrets:
 SMTP_USERNAME
 SMTP_PASSWORD
 SMTP_SENDER_EMAIL
+SUPER_ADMIN_EMAIL
 ```
 
 Every tag deployment applies them to the target EC2 `.env`, enables
-`OTP_EMAIL_ENABLED=true`, and restarts the exact approved image. CORS origins
-remain target-specific repository secrets.
+`OTP_EMAIL_ENABLED=true`, restarts the exact approved image, and idempotently
+creates or promotes `SUPER_ADMIN_EMAIL` to the `super_admin` role. CORS origins
+remain target-specific repository secrets. Local startup does not require
+`SUPER_ADMIN_EMAIL`.
 
 ## 6. Domain and HTTPS
 

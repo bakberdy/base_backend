@@ -22,6 +22,7 @@
   "missing_authorization": "Missing authorization",
   "otp_expired": "OTP expired",
   "otp_delivery_failed": "Could not send OTP code. Try again later",
+  "otp_recipient_rejected": "Could not deliver the code. Try a different email address",
   "otp_sent_to_email": "OTP sent to email",
   "request_failed": "Request failed",
   "service_unavailable_try_later": "Service is unavailable right now, try it later",
