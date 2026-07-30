@@ -36,8 +36,8 @@ on:
       AWS_ROLE_TO_ASSUME:
         required: true
       CORS_ALLOWED_ORIGINS:
-        description: "Environment-scoped CORS allowlist; the deploy job uses the selected environment secret"
-        required: false
+        description: "Target-specific CORS allowlist selected by the release caller"
+        required: true
 
   workflow_dispatch:
     inputs:

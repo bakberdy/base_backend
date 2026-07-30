@@ -682,11 +682,15 @@ source_sha
 image_reference
 security_evidence_id
 AWS_ROLE_TO_ASSUME
+CORS_ALLOWED_ORIGINS
 ```
 
 Ответственность:
 
 - направить одобренный artifact в environment, выбранное исключительно release tag;
+- выбрать target-specific repository secret
+  `CORS_ALLOWED_ORIGINS_DEVELOPMENT` или `CORS_ALLOWED_ORIGINS_PRODUCTION` и
+  передать его вызываемому workflow как `CORS_ALLOWED_ORIGINS`;
 - не изменять и не пересобирать artifact;
 - предоставить deploy workflow минимальные `actions: read`, `contents: read`,
   `id-token: write`.
@@ -716,7 +720,7 @@ Secret:
 | Secret | Назначение |
 | --- | --- |
 | `AWS_ROLE_TO_ASSUME` | AWS role для SSM deploy через GitHub OIDC. |
-| `CORS_ALLOWED_ORIGINS` | Environment-scoped HTTPS allowlist, скрытый из Git и Actions logs. |
+| `CORS_ALLOWED_ORIGINS` | Target-specific HTTPS allowlist, явно переданный caller workflow и скрытый из Git и Actions logs. |
 
 Outputs:
 
@@ -738,7 +742,6 @@ Environment предоставляет:
 ```text
 EC2_INSTANCE_ID
 DEPLOY_HEALTH_URL
-CORS_ALLOWED_ORIGINS (environment secret)
 ```
 
 Repository variables предоставляют:
@@ -748,6 +751,14 @@ AWS_REGION
 PROJECT_NAME
 ECR_REPOSITORY_URI
 AWS_ECR_SIGNING_PROFILE_ARN
+```
+
+Repository secrets предоставляют caller workflow:
+
+```text
+AWS_ROLE_TO_ASSUME
+CORS_ALLOWED_ORIGINS_DEVELOPMENT
+CORS_ALLOWED_ORIGINS_PRODUCTION
 ```
 
 Permissions:
