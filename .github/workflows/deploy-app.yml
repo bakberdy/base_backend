@@ -38,6 +38,15 @@ on:
       CORS_ALLOWED_ORIGINS:
         description: "Target-specific CORS allowlist selected by the release caller"
         required: true
+      SMTP_PASSWORD:
+        description: "SMTP application password"
+        required: true
+      SMTP_SENDER_EMAIL:
+        description: "Authenticated SMTP sender address"
+        required: true
+      SMTP_USERNAME:
+        description: "SMTP authentication username"
+        required: true
 
   workflow_dispatch:
     inputs:
@@ -106,6 +115,14 @@ jobs:
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           IMAGE_REFERENCE: ${{ inputs.image_reference }}
           SECURITY_EVIDENCE_ID: ${{ inputs.security_evidence_id }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SENDER_EMAIL: ${{ secrets.SMTP_SENDER_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
+          SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
@@ -140,6 +157,34 @@ jobs:
           }
           [[ "${CORS_ALLOWED_ORIGINS}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(,https://[A-Za-z0-9.-]+(:[0-9]+)?)*$ ]] || {
             echo "::error::CORS_ALLOWED_ORIGINS must be a comma-separated list of HTTPS origins."
+            exit 1
+          }
+          [[ "${SMTP_HOST}" =~ ^[A-Za-z0-9.-]+$ ]] || {
+            echo "::error::SMTP_HOST is missing or invalid."
+            exit 1
+          }
+          [[ "${SMTP_PORT}" =~ ^[0-9]{1,5}$ ]] || {
+            echo "::error::SMTP_PORT is missing or invalid."
+            exit 1
+          }
+          [[ -n "${SMTP_USERNAME}" && -n "${SMTP_PASSWORD}" ]] || {
+            echo "::error::SMTP credentials are missing."
+            exit 1
+          }
+          [[ "${SMTP_SENDER_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]] || {
+            echo "::error::SMTP_SENDER_EMAIL is missing or invalid."
+            exit 1
+          }
+          [[ -n "${SMTP_SENDER_NAME}" ]] || {
+            echo "::error::SMTP_SENDER_NAME is missing."
+            exit 1
+          }
+          [[ "${SMTP_USE_TLS}" =~ ^(true|false)$ && "${SMTP_USE_SSL}" =~ ^(true|false)$ ]] || {
+            echo "::error::SMTP_USE_TLS and SMTP_USE_SSL must be true or false."
+            exit 1
+          }
+          [[ "${SMTP_USE_TLS}" != "${SMTP_USE_SSL}" ]] || {
+            echo "::error::Exactly one SMTP transport mode must be enabled."
             exit 1
           }
 
@@ -218,6 +263,14 @@ jobs:
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           IMAGE_REFERENCE: ${{ inputs.image_reference }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SENDER_EMAIL: ${{ secrets.SMTP_SENDER_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
+          SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
@@ -244,6 +297,14 @@ jobs:
             --arg project_name "${PROJECT_NAME}" \
             --arg remote_directory "${remote_directory}" \
             --arg rollout_base64 "${rollout_base64}" \
+            --arg smtp_host "${SMTP_HOST}" \
+            --arg smtp_password "${SMTP_PASSWORD}" \
+            --arg smtp_port "${SMTP_PORT}" \
+            --arg smtp_sender_email "${SMTP_SENDER_EMAIL}" \
+            --arg smtp_sender_name "${SMTP_SENDER_NAME}" \
+            --arg smtp_username "${SMTP_USERNAME}" \
+            --arg smtp_use_ssl "${SMTP_USE_SSL}" \
+            --arg smtp_use_tls "${SMTP_USE_TLS}" \
             --arg tools_directory "${tools_directory}" \
             '{commands: [
               "set -euo pipefail",
@@ -259,7 +320,19 @@ jobs:
               "cp -f " + $remote_directory + "/deploy/ec2/*.sh " + $tools_directory + "/deploy/ec2/",
               "chmod 0755 " + $tools_directory + "/deploy/ec2/*.sh",
               "rm -rf " + $remote_directory,
-              "AWS_REGION=" + $aws_region + " CORS_ALLOWED_ORIGINS=" + $cors_allowed_origins + " PROJECT_NAME=" + $project_name + " bash " + $tools_directory + "/deploy/ec2/rollout.sh deploy " + $environment + " " + $image_reference,
+              "AWS_REGION=" + ($aws_region | @sh) +
+                " CORS_ALLOWED_ORIGINS=" + ($cors_allowed_origins | @sh) +
+                " PROJECT_NAME=" + ($project_name | @sh) +
+                " SMTP_HOST=" + ($smtp_host | @sh) +
+                " SMTP_PASSWORD=" + ($smtp_password | @sh) +
+                " SMTP_PORT=" + ($smtp_port | @sh) +
+                " SMTP_SENDER_EMAIL=" + ($smtp_sender_email | @sh) +
+                " SMTP_SENDER_NAME=" + ($smtp_sender_name | @sh) +
+                " SMTP_USERNAME=" + ($smtp_username | @sh) +
+                " SMTP_USE_SSL=" + ($smtp_use_ssl | @sh) +
+                " SMTP_USE_TLS=" + ($smtp_use_tls | @sh) +
+                " bash " + ($tools_directory + "/deploy/ec2/rollout.sh" | @sh) +
+                " deploy " + ($environment | @sh) + " " + ($image_reference | @sh),
               "install -m 0755 " + $tools_directory + "/deploy/ec2/enable_https.sh " + $app_directory + "/enable_https.sh"
             ]}')"
 
@@ -326,6 +399,14 @@ jobs:
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
           PREVIOUS_IMAGE: ${{ steps.rollout.outputs.previous_image }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SENDER_EMAIL: ${{ secrets.SMTP_SENDER_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
+          SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
@@ -342,9 +423,29 @@ jobs:
             --arg image_reference "${PREVIOUS_IMAGE}" \
             --arg project_name "${PROJECT_NAME}" \
             --arg rollout_script "${rollout_script}" \
+            --arg smtp_host "${SMTP_HOST}" \
+            --arg smtp_password "${SMTP_PASSWORD}" \
+            --arg smtp_port "${SMTP_PORT}" \
+            --arg smtp_sender_email "${SMTP_SENDER_EMAIL}" \
+            --arg smtp_sender_name "${SMTP_SENDER_NAME}" \
+            --arg smtp_username "${SMTP_USERNAME}" \
+            --arg smtp_use_ssl "${SMTP_USE_SSL}" \
+            --arg smtp_use_tls "${SMTP_USE_TLS}" \
             '{commands: [
               "set -euo pipefail",
-              "AWS_REGION=" + $aws_region + " CORS_ALLOWED_ORIGINS=" + $cors_allowed_origins + " PROJECT_NAME=" + $project_name + " bash " + $rollout_script + " rollback " + $environment + " " + $image_reference
+              "AWS_REGION=" + ($aws_region | @sh) +
+                " CORS_ALLOWED_ORIGINS=" + ($cors_allowed_origins | @sh) +
+                " PROJECT_NAME=" + ($project_name | @sh) +
+                " SMTP_HOST=" + ($smtp_host | @sh) +
+                " SMTP_PASSWORD=" + ($smtp_password | @sh) +
+                " SMTP_PORT=" + ($smtp_port | @sh) +
+                " SMTP_SENDER_EMAIL=" + ($smtp_sender_email | @sh) +
+                " SMTP_SENDER_NAME=" + ($smtp_sender_name | @sh) +
+                " SMTP_USERNAME=" + ($smtp_username | @sh) +
+                " SMTP_USE_SSL=" + ($smtp_use_ssl | @sh) +
+                " SMTP_USE_TLS=" + ($smtp_use_tls | @sh) +
+                " bash " + ($rollout_script | @sh) +
+                " rollback " + ($environment | @sh) + " " + ($image_reference | @sh)
             ]}')"
           rollback_id="$(aws ssm send-command \
             --instance-ids "${INSTANCE_ID}" \

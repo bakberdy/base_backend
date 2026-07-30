@@ -114,40 +114,34 @@ JWT_SECRET_KEY
 POSTGRES_PASSWORD
 ```
 
-It never uploads local `config.production.env` or application secrets from GitHub.
+It never uploads local `config.production.env`. Remote development and production
+receive OTP SMTP settings from GitHub Actions repository variables and encrypted
+repository secrets. Local startup keeps `OTP_EMAIL_ENABLED=false` and does not
+require SMTP.
 
 ## 5. Configure each server
 
-Open an SSM session or connect with SSH, then edit:
-
-```bash
-sudo nano /opt/mobile-app-backend-development/.env
-sudo nano /opt/mobile-app-backend-production/.env
-```
-
-Set environment-specific values:
+Configure these repository variables in GitHub Actions:
 
 ```env
-CORS_ALLOWED_ORIGINS=https://your-frontend.example
-OTP_EMAIL_ENABLED=true
 SMTP_HOST=...
-SMTP_PORT=...
-SMTP_USERNAME=...
-SMTP_PASSWORD=...
-SMTP_SENDER_EMAIL=...
-SMTP_SENDER_NAME=Mobile App
+SMTP_PORT=465
+SMTP_SENDER_NAME=OTP sender
+SMTP_USE_TLS=false
+SMTP_USE_SSL=true
 ```
 
-Apply changes:
+Configure these encrypted repository secrets:
 
-```bash
-cd /opt/mobile-app-backend-production
-sudo docker compose up -d
-sudo docker compose ps
-sudo docker compose logs --tail=100 app
+```text
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_SENDER_EMAIL
 ```
 
-Use the development directory on the development instance.
+Every tag deployment applies them to the target EC2 `.env`, enables
+`OTP_EMAIL_ENABLED=true`, and restarts the exact approved image. CORS origins
+remain target-specific repository secrets.
 
 ## 6. Domain and HTTPS
 
