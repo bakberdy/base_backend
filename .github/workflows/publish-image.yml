@@ -93,3 +93,4 @@ jobs:
       security_evidence_id: ${{ needs.container.outputs.security_evidence_id }}
     secrets:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      CORS_ALLOWED_ORIGINS: ${{ needs.release-contract.outputs.target_environment == 'development' && secrets.CORS_ALLOWED_ORIGINS_DEVELOPMENT || secrets.CORS_ALLOWED_ORIGINS_PRODUCTION }}
