@@ -140,15 +140,17 @@ def enforce_findings(report: dict[str, Any]) -> tuple[list[dict[str, str]], list
     return blocked, sorted(applied)
 
 
-def load_trivy_report(path: Path, top_digest: str) -> tuple[dict[str, Any], str]:
+def load_trivy_report(path: Path, platform_digest: str) -> tuple[dict[str, Any], str]:
     report_bytes = path.read_bytes()
     report = json.loads(report_bytes)
     if report.get("SchemaVersion") != 2:
         raise RuntimeError("Trivy report must use schema version 2")
     references = [str(report.get("ArtifactName", ""))]
     references.extend(str(value) for value in report.get("Metadata", {}).get("RepoDigests", []))
-    if not any(top_digest in reference for reference in references):
-        raise RuntimeError(f"Trivy report is not linked to release digest {top_digest}")
+    if not any(platform_digest in reference for reference in references):
+        raise RuntimeError(
+            f"Trivy report is not linked to deployable platform digest {platform_digest}"
+        )
     return report, "sha256:" + hashlib.sha256(report_bytes).hexdigest()
 
 
@@ -216,7 +218,7 @@ def main() -> int:
             raise ValueError("AWS_ECR_SIGNING_PROFILE_ARN is missing or invalid")
 
         platform_digest, predicates = resolve_attested_platform(args.repository, args.top_digest)
-        report, report_digest = load_trivy_report(args.trivy_report, args.top_digest)
+        report, report_digest = load_trivy_report(args.trivy_report, platform_digest)
         _, applied_exceptions = enforce_findings(report)
         signing = wait_for_signature(
             args.repository,

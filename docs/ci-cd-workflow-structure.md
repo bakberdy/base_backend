@@ -548,12 +548,16 @@ id-token: write
 4. Найти существующий image с tag `sha-<source_sha>`.
 5. Повторно использовать существующий digest либо один раз собрать и push image.
 6. При новой сборке сформировать provenance и SBOM.
-7. Разрешить top-level immutable digest.
-8. Просканировать точный `repository@digest` через Trivy.
-9. Проверить vulnerability policy, attestation и managed ECR signing.
-10. Сформировать digest-bound `image-security-evidence.json`.
-11. Сохранить security evidence и Trivy report как GitHub artifact на 90 дней.
-12. Вернуть immutable release outputs.
+7. Разрешить top-level immutable OCI index digest.
+8. Выделить из index единственный deployable `linux/amd64` platform digest.
+9. Просканировать точный `repository@platform-digest` через Trivy, не включая
+   служебные attestation manifests в vulnerability report.
+10. Проверить vulnerability policy для platform image, а SBOM, provenance и
+    managed ECR signing — для связанного attested OCI artifact.
+11. Сформировать digest-bound `image-security-evidence.json`.
+12. Сохранить Trivy report даже при policy failure, а при успехе также сохранить
+    security evidence; artifact хранится 90 дней.
+13. Вернуть immutable release outputs.
 
 Ключевой инвариант:
 

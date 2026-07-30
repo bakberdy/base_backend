@@ -204,10 +204,43 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/trivy"
           tar --extract --gzip --file "${archive}" --directory "${RUNNER_TEMP}/trivy"
 
-      - name: Scan exact release digest with Trivy
+      - name: Resolve deployable platform digest
+        id: platform
         env:
           ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
           TOP_DIGEST: ${{ steps.top.outputs.digest }}
+        run: |
+          set -euo pipefail
+          repository_name="${ECR_REPOSITORY_URI#*/}"
+          response="$(aws ecr batch-get-image \
+            --repository-name "${repository_name}" \
+            --image-ids "imageDigest=${TOP_DIGEST}" \
+            --accepted-media-types "application/vnd.oci.image.index.v1+json" \
+            --output json)"
+          platform_digest="$(jq --exit-status --raw-output '
+            .images
+            | select(length == 1)
+            | .[0].imageManifest
+            | fromjson
+            | [
+                .manifests[]
+                | select(
+                    .platform.os == "linux"
+                    and .platform.architecture == "amd64"
+                  )
+              ]
+            | if length == 1 then .[0].digest else error("expected one linux/amd64 manifest") end
+          ' <<<"${response}")"
+          [[ "${platform_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Release index did not resolve to one valid linux/amd64 digest."
+            exit 1
+          }
+          echo "digest=${platform_digest}" >>"${GITHUB_OUTPUT}"
+
+      - name: Scan exact release digest with Trivy
+        env:
+          ECR_REPOSITORY_URI: ${{ inputs.repository_uri }}
+          PLATFORM_DIGEST: ${{ steps.platform.outputs.digest }}
           TRIVY_DISABLE_TELEMETRY: "true"
         run: |
           set -euo pipefail
@@ -216,7 +249,7 @@ jobs:
             --format json \
             --output "${RUNNER_TEMP}/trivy-image-report.json" \
             --scanners vuln \
-            "${ECR_REPOSITORY_URI}@${TOP_DIGEST}"
+            "${ECR_REPOSITORY_URI}@${PLATFORM_DIGEST}"
 
       - name: Enforce attestation, vulnerability, and signing policy
         id: artifact
@@ -242,13 +275,14 @@ jobs:
             --github-output "${GITHUB_OUTPUT}"
 
       - name: Store immutable security evidence
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: image-security-evidence-${{ inputs.source_sha }}
           path: |
             ${{ runner.temp }}/image-security-evidence.json
             ${{ runner.temp }}/trivy-image-report.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 90
 
       - name: Record immutable image evidence
