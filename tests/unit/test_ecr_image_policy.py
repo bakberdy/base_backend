@@ -94,7 +94,7 @@ def test_unfixed_critical_finding_remains_visible_but_does_not_block() -> None:
     assert applied == []
 
 
-def test_trivy_report_must_reference_release_digest(tmp_path: Path) -> None:
+def test_trivy_report_must_reference_deployable_platform_digest(tmp_path: Path) -> None:
     report = tmp_path / "trivy.json"
     report.write_text(
         '{"SchemaVersion":2,"ArtifactName":"repository@sha256:' + "d" * 64 + '","Results":[]}',
@@ -102,4 +102,17 @@ def test_trivy_report_must_reference_release_digest(tmp_path: Path) -> None:
     )
 
     with pytest.raises(RuntimeError, match="not linked"):
-        ecr_image_policy.load_trivy_report(report, TOP_DIGEST)
+        ecr_image_policy.load_trivy_report(report, PLATFORM_DIGEST)
+
+
+def test_trivy_report_accepts_deployable_platform_digest(tmp_path: Path) -> None:
+    report = tmp_path / "trivy.json"
+    report.write_text(
+        '{"SchemaVersion":2,"ArtifactName":"repository@' + PLATFORM_DIGEST + '","Results":[]}',
+        encoding="utf-8",
+    )
+
+    parsed, report_digest = ecr_image_policy.load_trivy_report(report, PLATFORM_DIGEST)
+
+    assert parsed["ArtifactName"] == f"repository@{PLATFORM_DIGEST}"
+    assert report_digest.startswith("sha256:")
