@@ -11,6 +11,14 @@ container_image="${2:?Usage: bootstrap.sh <development|production> <container-im
 project_name="${PROJECT_NAME:-mobile-app-backend}"
 aws_region="${AWS_REGION:?AWS_REGION is required for private ECR authentication.}"
 cors_allowed_origins="${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required.}"
+smtp_host="${SMTP_HOST:?SMTP_HOST is required.}"
+smtp_port="${SMTP_PORT:?SMTP_PORT is required.}"
+smtp_username="${SMTP_USERNAME:?SMTP_USERNAME is required.}"
+smtp_password="${SMTP_PASSWORD:?SMTP_PASSWORD is required.}"
+smtp_sender_email="${SMTP_SENDER_EMAIL:?SMTP_SENDER_EMAIL is required.}"
+smtp_sender_name="${SMTP_SENDER_NAME:?SMTP_SENDER_NAME is required.}"
+smtp_use_tls="${SMTP_USE_TLS:?SMTP_USE_TLS is required.}"
+smtp_use_ssl="${SMTP_USE_SSL:?SMTP_USE_SSL is required.}"
 
 case "${environment}" in
   development | production) ;;
@@ -33,6 +41,26 @@ esac
 }
 [[ "${cors_allowed_origins}" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(,https://[A-Za-z0-9.-]+(:[0-9]+)?)*$ ]] || {
   echo "CORS_ALLOWED_ORIGINS must be a comma-separated list of HTTPS origins." >&2
+  exit 1
+}
+[[ "${smtp_host}" =~ ^[A-Za-z0-9.-]+$ ]] || {
+  echo "SMTP_HOST is invalid." >&2
+  exit 1
+}
+[[ "${smtp_port}" =~ ^[0-9]{1,5}$ ]] || {
+  echo "SMTP_PORT is invalid." >&2
+  exit 1
+}
+[[ "${smtp_sender_email}" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]] || {
+  echo "SMTP_SENDER_EMAIL is invalid." >&2
+  exit 1
+}
+[[ "${smtp_use_tls}" =~ ^(true|false)$ && "${smtp_use_ssl}" =~ ^(true|false)$ ]] || {
+  echo "SMTP_USE_TLS and SMTP_USE_SSL must be true or false." >&2
+  exit 1
+}
+[[ "${smtp_use_tls}" != "${smtp_use_ssl}" ]] || {
+  echo "Exactly one SMTP transport mode must be enabled." >&2
   exit 1
 }
 ecr_registry="${container_image%%/*}"
@@ -137,13 +165,8 @@ if [[ ! -f "${env_file}" ]]; then
   jwt_secret_key="$(openssl rand -hex 32)"
   postgres_password="$(openssl rand -hex 24)"
 
-  if [[ "${environment}" == "development" ]]; then
-    dev_otp_code="000000"
-    otp_email_enabled="false"
-  else
-    dev_otp_code=""
-    otp_email_enabled="true"
-  fi
+  dev_otp_code=""
+  otp_email_enabled="true"
 
   cat >"${env_file}" <<EOF
 ENVIRONMENT=${environment}
@@ -176,14 +199,14 @@ OTP_EXPIRE_SECONDS=600
 OTP_MAX_ATTEMPTS=5
 DEV_OTP_CODE=${dev_otp_code}
 OTP_EMAIL_ENABLED=${otp_email_enabled}
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USERNAME=
-SMTP_PASSWORD=
-SMTP_SENDER_EMAIL=
-SMTP_SENDER_NAME=Mobile App
-SMTP_USE_TLS=true
-SMTP_USE_SSL=false
+SMTP_HOST=${smtp_host}
+SMTP_PORT=${smtp_port}
+SMTP_USERNAME=${smtp_username}
+SMTP_PASSWORD=${smtp_password}
+SMTP_SENDER_EMAIL=${smtp_sender_email}
+SMTP_SENDER_NAME=${smtp_sender_name}
+SMTP_USE_TLS=${smtp_use_tls}
+SMTP_USE_SSL=${smtp_use_ssl}
 RATE_LIMIT_LOGIN=10/minute
 RATE_LIMIT_VERIFY=20/minute
 APP_TITLE=Mobile app API
@@ -196,6 +219,16 @@ fi
 upsert_env "ENVIRONMENT" "${environment}" "${env_file}"
 upsert_env "CONTAINER_IMAGE" "${container_image}" "${env_file}"
 upsert_env "CORS_ALLOWED_ORIGINS" "${cors_allowed_origins}" "${env_file}"
+upsert_env "DEV_OTP_CODE" "" "${env_file}"
+upsert_env "OTP_EMAIL_ENABLED" "true" "${env_file}"
+upsert_env "SMTP_HOST" "${smtp_host}" "${env_file}"
+upsert_env "SMTP_PORT" "${smtp_port}" "${env_file}"
+upsert_env "SMTP_USERNAME" "${smtp_username}" "${env_file}"
+upsert_env "SMTP_PASSWORD" "${smtp_password}" "${env_file}"
+upsert_env "SMTP_SENDER_EMAIL" "${smtp_sender_email}" "${env_file}"
+upsert_env "SMTP_SENDER_NAME" "${smtp_sender_name}" "${env_file}"
+upsert_env "SMTP_USE_TLS" "${smtp_use_tls}" "${env_file}"
+upsert_env "SMTP_USE_SSL" "${smtp_use_ssl}" "${env_file}"
 
 cd "${app_directory}"
 docker compose pull

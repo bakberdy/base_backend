@@ -683,6 +683,9 @@ image_reference
 security_evidence_id
 AWS_ROLE_TO_ASSUME
 CORS_ALLOWED_ORIGINS
+SMTP_PASSWORD
+SMTP_SENDER_EMAIL
+SMTP_USERNAME
 ```
 
 Ответственность:
@@ -691,6 +694,8 @@ CORS_ALLOWED_ORIGINS
 - выбрать target-specific repository secret
   `CORS_ALLOWED_ORIGINS_DEVELOPMENT` или `CORS_ALLOWED_ORIGINS_PRODUCTION` и
   передать его вызываемому workflow как `CORS_ALLOWED_ORIGINS`;
+- передать общие для удаленных development и production SMTP credentials,
+  не раскрывая их в Git или Actions logs;
 - не изменять и не пересобирать artifact;
 - предоставить deploy workflow минимальные `actions: read`, `contents: read`,
   `id-token: write`.
@@ -721,6 +726,9 @@ Secret:
 | --- | --- |
 | `AWS_ROLE_TO_ASSUME` | AWS role для SSM deploy через GitHub OIDC. |
 | `CORS_ALLOWED_ORIGINS` | Target-specific HTTPS allowlist, явно переданный caller workflow и скрытый из Git и Actions logs. |
+| `SMTP_USERNAME` | SMTP authentication identity для OTP delivery. |
+| `SMTP_PASSWORD` | Пароль внешнего SMTP-приложения. |
+| `SMTP_SENDER_EMAIL` | Адрес отправителя OTP, совпадающий с разрешенным SMTP identity. |
 
 Outputs:
 
@@ -751,6 +759,11 @@ AWS_REGION
 PROJECT_NAME
 ECR_REPOSITORY_URI
 AWS_ECR_SIGNING_PROFILE_ARN
+SMTP_HOST
+SMTP_PORT
+SMTP_SENDER_NAME
+SMTP_USE_SSL
+SMTP_USE_TLS
 ```
 
 Repository secrets предоставляют caller workflow:
@@ -759,7 +772,14 @@ Repository secrets предоставляют caller workflow:
 AWS_ROLE_TO_ASSUME
 CORS_ALLOWED_ORIGINS_DEVELOPMENT
 CORS_ALLOWED_ORIGINS_PRODUCTION
+SMTP_USERNAME
+SMTP_PASSWORD
+SMTP_SENDER_EMAIL
 ```
+
+SMTP включен только bootstrap/deploy-контрактом удаленных `development` и
+`production`. Локальный `config.example.env` сохраняет
+`OTP_EMAIL_ENABLED=false`, поэтому локальный запуск не требует SMTP credentials.
 
 Permissions:
 
