@@ -1,6 +1,22 @@
 from app.common.exceptions.base import ApplicationError
 
 
+class OtpRecipientRejectedError(ApplicationError):
+    def __init__(self) -> None:
+        super().__init__(
+            "OTP_RECIPIENT_REJECTED",
+            {
+                "type": "inline",
+                "field_errors": [
+                    {
+                        "field_name": "email",
+                        "message": "otp_recipient_rejected",
+                    }
+                ],
+            },
+        )
+
+
 class InvalidLoginRequestError(ApplicationError):
     def __init__(self) -> None:
         super().__init__("INVALID_LOGIN_REQUEST")

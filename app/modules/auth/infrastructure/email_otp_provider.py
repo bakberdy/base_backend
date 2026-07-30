@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from email.utils import formataddr
 
 from app.common.exceptions.base import ApplicationError
+from app.modules.auth.domain.exceptions import OtpRecipientRejectedError
 from app.modules.auth.infrastructure.bcrypt_password_hasher import SecureOtpCodeProvider
 
 
@@ -38,6 +39,8 @@ class SmtpEmailOtpCodeProvider(SecureOtpCodeProvider):
                 code=code,
                 expires_in_seconds=expires_in_seconds,
             )
+        except smtplib.SMTPRecipientsRefused as exc:
+            raise OtpRecipientRejectedError() from exc
         except (OSError, smtplib.SMTPException) as exc:
             raise ApplicationError("OTP_DELIVERY_FAILED") from exc
 

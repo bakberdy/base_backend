@@ -22,6 +22,7 @@
   "missing_authorization": "Авторизация жоқ",
   "otp_expired": "OTP кодының мерзімі аяқталды",
   "otp_delivery_failed": "OTP кодын жіберу мүмкін болмады. Кейінірек қайталап көріңіз",
+  "otp_recipient_rejected": "Кодты жеткізу мүмкін болмады. Басқа электрондық пошта мекенжайын қолданып көріңіз",
   "otp_sent_to_email": "OTP коды email-ге жіберілді",
   "request_failed": "Сұрау орындалмады",
   "service_unavailable_try_later": "Қызмет қазір қолжетімсіз, кейінірек қайталап көріңіз",

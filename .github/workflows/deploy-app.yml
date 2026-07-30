@@ -47,6 +47,9 @@ on:
       SMTP_USERNAME:
         description: "SMTP authentication username"
         required: true
+      SUPER_ADMIN_EMAIL:
+        description: "Account bootstrapped as the initial super administrator"
+        required: true
 
   workflow_dispatch:
     inputs:
@@ -124,6 +127,7 @@ jobs:
           SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
           SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
           SOURCE_SHA: ${{ inputs.source_sha }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
@@ -185,6 +189,10 @@ jobs:
           }
           [[ "${SMTP_USE_TLS}" != "${SMTP_USE_SSL}" ]] || {
             echo "::error::Exactly one SMTP transport mode must be enabled."
+            exit 1
+          }
+          [[ "${SUPER_ADMIN_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]] || {
+            echo "::error::SUPER_ADMIN_EMAIL is missing or invalid."
             exit 1
           }
 
@@ -271,6 +279,7 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
           SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
@@ -305,6 +314,7 @@ jobs:
             --arg smtp_username "${SMTP_USERNAME}" \
             --arg smtp_use_ssl "${SMTP_USE_SSL}" \
             --arg smtp_use_tls "${SMTP_USE_TLS}" \
+            --arg super_admin_email "${SUPER_ADMIN_EMAIL}" \
             --arg tools_directory "${tools_directory}" \
             '{commands: [
               "set -euo pipefail",
@@ -331,6 +341,7 @@ jobs:
                 " SMTP_USERNAME=" + ($smtp_username | @sh) +
                 " SMTP_USE_SSL=" + ($smtp_use_ssl | @sh) +
                 " SMTP_USE_TLS=" + ($smtp_use_tls | @sh) +
+                " SUPER_ADMIN_EMAIL=" + ($super_admin_email | @sh) +
                 " bash " + ($tools_directory + "/deploy/ec2/rollout.sh" | @sh) +
                 " deploy " + ($environment | @sh) + " " + ($image_reference | @sh),
               "install -m 0755 " + $tools_directory + "/deploy/ec2/enable_https.sh " + $app_directory + "/enable_https.sh"
@@ -407,6 +418,7 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_USE_SSL: ${{ vars.SMTP_USE_SSL }}
           SMTP_USE_TLS: ${{ vars.SMTP_USE_TLS }}
+          SUPER_ADMIN_EMAIL: ${{ secrets.SUPER_ADMIN_EMAIL }}
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
         run: |
           set -euo pipefail
@@ -431,6 +443,7 @@ jobs:
             --arg smtp_username "${SMTP_USERNAME}" \
             --arg smtp_use_ssl "${SMTP_USE_SSL}" \
             --arg smtp_use_tls "${SMTP_USE_TLS}" \
+            --arg super_admin_email "${SUPER_ADMIN_EMAIL}" \
             '{commands: [
               "set -euo pipefail",
               "AWS_REGION=" + ($aws_region | @sh) +
@@ -444,6 +457,7 @@ jobs:
                 " SMTP_USERNAME=" + ($smtp_username | @sh) +
                 " SMTP_USE_SSL=" + ($smtp_use_ssl | @sh) +
                 " SMTP_USE_TLS=" + ($smtp_use_tls | @sh) +
+                " SUPER_ADMIN_EMAIL=" + ($super_admin_email | @sh) +
                 " bash " + ($rollout_script | @sh) +
                 " rollback " + ($environment | @sh) + " " + ($image_reference | @sh)
             ]}')"

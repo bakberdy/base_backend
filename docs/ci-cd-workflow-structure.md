@@ -686,6 +686,7 @@ CORS_ALLOWED_ORIGINS
 SMTP_PASSWORD
 SMTP_SENDER_EMAIL
 SMTP_USERNAME
+SUPER_ADMIN_EMAIL
 ```
 
 Ответственность:
@@ -696,6 +697,8 @@ SMTP_USERNAME
   передать его вызываемому workflow как `CORS_ALLOWED_ORIGINS`;
 - передать общие для удаленных development и production SMTP credentials,
   не раскрывая их в Git или Actions logs;
+- передать bootstrap identity первого `super_admin` как encrypted repository
+  secret, не фиксируя email в Git;
 - не изменять и не пересобирать artifact;
 - предоставить deploy workflow минимальные `actions: read`, `contents: read`,
   `id-token: write`.
@@ -729,6 +732,7 @@ Secret:
 | `SMTP_USERNAME` | SMTP authentication identity для OTP delivery. |
 | `SMTP_PASSWORD` | Пароль внешнего SMTP-приложения. |
 | `SMTP_SENDER_EMAIL` | Адрес отправителя OTP, совпадающий с разрешенным SMTP identity. |
+| `SUPER_ADMIN_EMAIL` | Нормализованный email аккаунта, идемпотентно создаваемого или повышаемого до `super_admin` при deploy. |
 
 Outputs:
 
@@ -775,11 +779,15 @@ CORS_ALLOWED_ORIGINS_PRODUCTION
 SMTP_USERNAME
 SMTP_PASSWORD
 SMTP_SENDER_EMAIL
+SUPER_ADMIN_EMAIL
 ```
 
 SMTP включен только bootstrap/deploy-контрактом удаленных `development` и
 `production`. Локальный `config.example.env` сохраняет
 `OTP_EMAIL_ENABLED=false`, поэтому локальный запуск не требует SMTP credentials.
+`SUPER_ADMIN_EMAIL` также применяется только удаленным bootstrap: после
+`docker compose up` backend создаёт пользователя при отсутствии или повышает
+существующего до `super_admin`. Повторный deploy не создаёт дубликаты.
 
 Permissions:
 

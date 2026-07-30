@@ -7,7 +7,12 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.wrappers import Limit
 from starlette.requests import Request
 
-from app.common.exceptions.handlers import rate_limit_exception_handler
+from app.common.exceptions.handlers import (
+    application_exception_handler,
+    rate_limit_exception_handler,
+)
+from app.common.localization.service import reset_locale, set_locale
+from app.modules.auth.domain.exceptions import OtpRecipientRejectedError
 
 
 def _request() -> Request:
@@ -52,5 +57,35 @@ def test_rate_limit_error_uses_shared_error_response_shape() -> None:
             "type": "snackbar",
             "field_errors": None,
             "status_code": 429,
+        },
+    }
+
+
+def test_rejected_otp_recipient_returns_localized_inline_email_error() -> None:
+    locale_token = set_locale("ru")
+    try:
+        response = asyncio.run(
+            application_exception_handler(
+                _request(),
+                OtpRecipientRejectedError(),
+            )
+        )
+    finally:
+        reset_locale(locale_token)
+    body: dict[str, Any] = json.loads(response.body)
+
+    assert response.status_code == 422
+    assert body == {
+        "message": "Не удалось доставить код. Попробуйте указать другую почту",
+        "code": 422,
+        "details": {
+            "type": "inline",
+            "field_errors": [
+                {
+                    "field_name": "email",
+                    "message": "Не удалось доставить код. Попробуйте указать другую почту",
+                }
+            ],
+            "status_code": 422,
         },
     }

@@ -148,3 +148,63 @@ def test_email_otp_provider_wraps_smtp_failures(monkeypatch: pytest.MonkeyPatch)
         )
 
     assert exc_info.value.code == "OTP_DELIVERY_FAILED"
+
+
+def test_email_otp_provider_maps_rejected_recipient_to_client_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class RejectedRecipientSmtp:
+        def __init__(self, host: str, port: int, timeout: int) -> None:
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            pass
+
+        def starttls(self, *, context) -> None:
+            pass
+
+        def login(self, username: str, password: str) -> None:
+            pass
+
+        def send_message(self, _message: EmailMessage) -> None:
+            raise smtplib.SMTPRecipientsRefused(
+                {"missing@example.com": (550, b"recipient verification failed")}
+            )
+
+    monkeypatch.setattr(
+        "app.modules.auth.infrastructure.email_otp_provider.smtplib.SMTP",
+        RejectedRecipientSmtp,
+    )
+    provider = SmtpEmailOtpCodeProvider(
+        host="smtp.example.com",
+        port=587,
+        username="smtp-user",
+        password="smtp-password",
+        sender_email="no-reply@example.com",
+        sender_name="Mobile App",
+        use_tls=True,
+        use_ssl=False,
+    )
+
+    with pytest.raises(ApplicationError) as exc_info:
+        asyncio.run(
+            provider.send_otp_code(
+                email="missing@example.com",
+                code="123456",
+                expires_in_seconds=600,
+            )
+        )
+
+    assert exc_info.value.code == "OTP_RECIPIENT_REJECTED"
+    assert exc_info.value.details == {
+        "type": "inline",
+        "field_errors": [
+            {
+                "field_name": "email",
+                "message": "otp_recipient_rejected",
+            }
+        ],
+    }

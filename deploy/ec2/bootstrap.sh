@@ -19,6 +19,7 @@ smtp_sender_email="${SMTP_SENDER_EMAIL:?SMTP_SENDER_EMAIL is required.}"
 smtp_sender_name="${SMTP_SENDER_NAME:?SMTP_SENDER_NAME is required.}"
 smtp_use_tls="${SMTP_USE_TLS:?SMTP_USE_TLS is required.}"
 smtp_use_ssl="${SMTP_USE_SSL:?SMTP_USE_SSL is required.}"
+super_admin_email="${SUPER_ADMIN_EMAIL:?SUPER_ADMIN_EMAIL is required.}"
 
 case "${environment}" in
   development | production) ;;
@@ -61,6 +62,10 @@ esac
 }
 [[ "${smtp_use_tls}" != "${smtp_use_ssl}" ]] || {
   echo "Exactly one SMTP transport mode must be enabled." >&2
+  exit 1
+}
+[[ "${super_admin_email}" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]] || {
+  echo "SUPER_ADMIN_EMAIL is invalid." >&2
   exit 1
 }
 ecr_registry="${container_image%%/*}"
@@ -207,6 +212,7 @@ SMTP_SENDER_EMAIL=${smtp_sender_email}
 SMTP_SENDER_NAME=${smtp_sender_name}
 SMTP_USE_TLS=${smtp_use_tls}
 SMTP_USE_SSL=${smtp_use_ssl}
+SUPER_ADMIN_EMAIL=${super_admin_email}
 RATE_LIMIT_LOGIN=10/minute
 RATE_LIMIT_VERIFY=20/minute
 APP_TITLE=Mobile app API
@@ -229,9 +235,11 @@ upsert_env "SMTP_SENDER_EMAIL" "${smtp_sender_email}" "${env_file}"
 upsert_env "SMTP_SENDER_NAME" "${smtp_sender_name}" "${env_file}"
 upsert_env "SMTP_USE_TLS" "${smtp_use_tls}" "${env_file}"
 upsert_env "SMTP_USE_SSL" "${smtp_use_ssl}" "${env_file}"
+upsert_env "SUPER_ADMIN_EMAIL" "${super_admin_email}" "${env_file}"
 
 cd "${app_directory}"
 docker compose pull
 docker logout "${ecr_registry}" >/dev/null
 docker compose up -d --remove-orphans
+docker compose exec -T app python -m app.modules.users.infrastructure.super_admin_bootstrap
 docker compose ps
