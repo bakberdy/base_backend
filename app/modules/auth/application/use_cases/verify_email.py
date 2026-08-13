@@ -2,6 +2,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+from app.common.authorization.repositories import AccessStateStore, AuthorizationIdentityRepository
 from app.modules.auth.application.dto import TokenPairDto, UnitOfWork
 from app.modules.auth.domain.exceptions import (
     InvalidCredentialsError,
@@ -13,7 +14,6 @@ from app.modules.auth.domain.exceptions import (
 )
 from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import PasswordHasher, TokenService
-from app.modules.users.domain.repositories import UserRepository
 
 
 class VerifyEmailUseCase:
@@ -21,8 +21,9 @@ class VerifyEmailUseCase:
         self,
         auth_repository: AuthRepository,
         login_request_store: LoginRequestStore,
-        user_repository: UserRepository,
+        user_repository: AuthorizationIdentityRepository,
         token_service: TokenService,
+        access_state_store: AccessStateStore,
         password_hasher: PasswordHasher,
         unit_of_work: UnitOfWork,
         *,
@@ -33,6 +34,7 @@ class VerifyEmailUseCase:
         self._login_requests = login_request_store
         self._users = user_repository
         self._tokens = token_service
+        self._access_state = access_state_store
         self._hasher = password_hasher
         self._unit_of_work = unit_of_work
         self._refresh_expire_days = refresh_expire_days
@@ -77,6 +79,7 @@ class VerifyEmailUseCase:
             await self._auth.revoke_active_sessions_for_user_device(
                 user.id, login_request.user_device_id, now
             )
+            await self._access_state.revoke_all_sessions(user.id)
 
             session_id = uuid4()
             refresh_token = self._tokens.create_refresh_token(user.id, session_id)
@@ -90,7 +93,12 @@ class VerifyEmailUseCase:
                 last_active_at=now,
             )
             await self._auth.touch_user_device(login_request.user_device_id, now)
-            access_token = self._tokens.create_access_token(user.id, session_id)
+            access_token = self._tokens.create_access_token(
+                user.id,
+                session_id,
+                user.role,
+                user.authorization_version,
+            )
             await self._unit_of_work.commit()
         except Exception:
             await self._unit_of_work.rollback()

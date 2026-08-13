@@ -1,10 +1,12 @@
 {
   "all_sessions_deleted": "all sessions deleted",
+  "dependency_unavailable": "A required service is temporarily unavailable",
   "field_required": "Field is required",
   "forbidden": "Forbidden",
   "invalid_boolean": "Invalid boolean value",
   "invalid_avatar_upload": "Invalid avatar upload",
   "invalid_credentials": "Invalid credentials",
+  "invalid_dependency_state": "A required service returned invalid data",
   "invalid_format": "Invalid format",
   "invalid_integer": "Invalid number",
   "invalid_login_request": "Invalid login request",

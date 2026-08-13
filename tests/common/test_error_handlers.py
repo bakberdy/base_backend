@@ -3,12 +3,14 @@ import json
 from typing import Any
 
 from limits import parse
+from redis.exceptions import ConnectionError as RedisConnectionError
 from slowapi.errors import RateLimitExceeded
 from slowapi.wrappers import Limit
 from starlette.requests import Request
 
 from app.common.exceptions.handlers import (
     application_exception_handler,
+    dependency_exception_handler,
     rate_limit_exception_handler,
 )
 from app.common.localization.service import reset_locale, set_locale
@@ -89,3 +91,15 @@ def test_rejected_otp_recipient_returns_localized_inline_email_error() -> None:
             "status_code": 422,
         },
     }
+
+
+def test_redis_failure_returns_unified_dependency_unavailable_error() -> None:
+    response = asyncio.run(
+        dependency_exception_handler(_request(), RedisConnectionError("synthetic failure"))
+    )
+    body: dict[str, Any] = json.loads(response.body)
+
+    assert response.status_code == 503
+    assert body["code"] == 503
+    assert body["message"] == "A required service is temporarily unavailable"
+    assert body["details"]["type"] == "alert"

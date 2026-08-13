@@ -385,7 +385,6 @@ def test_users_get_by_id_success_not_found_and_forbidden_boundaries(
     target_user = create_authenticated_user(
         integration_client, integration_settings, role=UserRole.USER
     )
-
     success_response = integration_client.get(
         f"/users/{target_user.id}",
         headers=auth_headers(admin.access_token),
@@ -487,6 +486,12 @@ def test_update_user_role_success_forbidden_not_found_and_validation(
     target_user = create_authenticated_user(
         integration_client, integration_settings, role=UserRole.USER
     )
+    assert (
+        integration_client.get(
+            "/users/me", headers=auth_headers(target_user.access_token)
+        ).status_code
+        == 200
+    )
 
     forbidden_response = integration_client.patch(
         f"/users/{target_user.id}/role",
@@ -517,6 +522,12 @@ def test_update_user_role_success_forbidden_not_found_and_validation(
     assert success_response.status_code == 200
     assert success_response.json()["role"] == UserRole.ADMIN.value
 
+    stale_token_response = integration_client.get(
+        "/users/me",
+        headers=auth_headers(target_user.access_token),
+    )
+    assert stale_token_response.status_code == 401
+
 
 def test_update_user_status_success_forbidden_not_found_and_validation(
     integration_client: TestClient,
@@ -530,6 +541,12 @@ def test_update_user_status_success_forbidden_not_found_and_validation(
     admin = create_authenticated_user(integration_client, integration_settings, role=UserRole.ADMIN)
     target_user = create_authenticated_user(
         integration_client, integration_settings, role=UserRole.USER
+    )
+    assert (
+        integration_client.get(
+            "/users/me", headers=auth_headers(target_user.access_token)
+        ).status_code
+        == 200
     )
 
     forbidden_response = integration_client.patch(
@@ -560,6 +577,12 @@ def test_update_user_status_success_forbidden_not_found_and_validation(
     )
     assert success_response.status_code == 200
     assert success_response.json()["status"] == UserStatus.BLOCKED.value
+    assert (
+        integration_client.get(
+            "/users/me", headers=auth_headers(target_user.access_token)
+        ).status_code
+        == 401
+    )
 
 
 def test_admin_approve_deletion_request_soft_deletes_user(

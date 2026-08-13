@@ -14,24 +14,29 @@ from app.modules.auth.infrastructure.bcrypt_password_hasher import (
 )
 from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
+from app.modules.users.domain.enums import UserRole
 
 
 def test_jwt_token_service_generates_access_and_refresh_payloads() -> None:
     user_id = uuid4()
     session_id = uuid4()
     service = JwtTokenService(
-        secret="test-secret",
+        secret="synthetic-test-secret-at-least-32-bytes",
         algorithm="HS256",
         access_expire_minutes=1,
         refresh_expire_days=14,
     )
 
-    access_payload = service.decode_token(service.create_access_token(user_id, session_id))
+    access_payload = service.decode_token(
+        service.create_access_token(user_id, session_id, UserRole.ADMIN, 3)
+    )
     refresh_payload = service.decode_token(service.create_refresh_token(user_id, session_id))
 
     assert access_payload["typ"] == TokenType.ACCESS.value
     assert access_payload["sub"] == str(user_id)
     assert access_payload["sid"] == str(session_id)
+    assert access_payload["role"] == UserRole.ADMIN.value
+    assert access_payload["av"] == 3
     assert refresh_payload["typ"] == TokenType.REFRESH.value
     assert refresh_payload["sub"] == str(user_id)
     assert refresh_payload["jti"] == str(session_id)

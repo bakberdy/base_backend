@@ -1,14 +1,18 @@
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.responses.error_response import api_http_exception
+from app.common.authorization.repositories import AccessStateStore, AuthorizationIdentityRepository
 from app.core.config import get_settings
 from app.core.database import SqlAlchemyUnitOfWork, get_db
+from app.core.dependencies import (
+    get_access_state_store,
+    get_auth_repository,
+    get_authorization_identity_repository,
+)
+from app.core.redis import get_redis
 from app.modules.auth.application.use_cases.get_sessions import GetSessionsUseCase
 from app.modules.auth.application.use_cases.login_user import LoginUserUseCase
 from app.modules.auth.application.use_cases.logout_user import LogoutUserUseCase
@@ -18,7 +22,6 @@ from app.modules.auth.application.use_cases.revoke_token import RevokeTokenUseCa
 from app.modules.auth.application.use_cases.update_device_notifications import (
     UpdateDeviceNotificationsUseCase,
 )
-from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.application.use_cases.verify_email import VerifyEmailUseCase
 from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher, TokenService
@@ -29,19 +32,6 @@ from app.modules.auth.infrastructure.bcrypt_password_hasher import (
 from app.modules.auth.infrastructure.email_otp_provider import SmtpEmailOtpCodeProvider
 from app.modules.auth.infrastructure.jwt_token_service import JwtTokenService
 from app.modules.auth.infrastructure.redis_login_request_store import RedisLoginRequestStore
-from app.modules.auth.infrastructure.sqlalchemy_repositories import SqlAlchemyAuthRepository
-from app.modules.users.api.dependencies import get_user_repository
-from app.modules.users.domain.repositories import UserRepository
-
-http_bearer = HTTPBearer(auto_error=False)
-
-
-def get_auth_repository(session: AsyncSession = Depends(get_db)) -> AuthRepository:
-    return SqlAlchemyAuthRepository(session)
-
-
-def get_redis(request: Request) -> Redis:
-    return request.app.state.redis
 
 
 def get_login_request_store(redis: Redis = Depends(get_redis)) -> LoginRequestStore:
@@ -96,7 +86,7 @@ def login_user_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
     login_request_store: LoginRequestStore = Depends(get_login_request_store),
-    user_repo: UserRepository = Depends(get_user_repository),
+    user_repo: AuthorizationIdentityRepository = Depends(get_authorization_identity_repository),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
     otp_provider: OtpCodeProvider = Depends(get_otp_provider),
 ) -> LoginUserUseCase:
@@ -118,8 +108,9 @@ def verify_email_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
     login_request_store: LoginRequestStore = Depends(get_login_request_store),
-    user_repo: UserRepository = Depends(get_user_repository),
+    user_repo: AuthorizationIdentityRepository = Depends(get_authorization_identity_repository),
     token_service: TokenService = Depends(get_token_service),
+    access_state_store: AccessStateStore = Depends(get_access_state_store),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
 ) -> VerifyEmailUseCase:
     settings = get_settings()
@@ -128,6 +119,7 @@ def verify_email_use_case(
         login_request_store,
         user_repo,
         token_service,
+        access_state_store,
         password_hasher,
         SqlAlchemyUnitOfWork(session),
         refresh_expire_days=settings.refresh_token_expire_days,
@@ -138,12 +130,16 @@ def verify_email_use_case(
 def refresh_token_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    user_repo: AuthorizationIdentityRepository = Depends(get_authorization_identity_repository),
     token_service: TokenService = Depends(get_token_service),
+    access_state_store: AccessStateStore = Depends(get_access_state_store),
     password_hasher: PasswordHasher = Depends(get_password_hasher),
 ) -> RefreshTokenUseCase:
     return RefreshTokenUseCase(
         auth_repo,
+        user_repo,
         token_service,
+        access_state_store,
         password_hasher,
         SqlAlchemyUnitOfWork(session),
         refresh_expire_days=get_settings().refresh_token_expire_days,
@@ -159,22 +155,25 @@ def get_sessions_use_case(
 def revoke_token_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    access_state_store: AccessStateStore = Depends(get_access_state_store),
 ) -> RevokeTokenUseCase:
-    return RevokeTokenUseCase(auth_repo, SqlAlchemyUnitOfWork(session))
+    return RevokeTokenUseCase(auth_repo, access_state_store, SqlAlchemyUnitOfWork(session))
 
 
 def revoke_all_tokens_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    access_state_store: AccessStateStore = Depends(get_access_state_store),
 ) -> RevokeAllTokensUseCase:
-    return RevokeAllTokensUseCase(auth_repo, SqlAlchemyUnitOfWork(session))
+    return RevokeAllTokensUseCase(auth_repo, access_state_store, SqlAlchemyUnitOfWork(session))
 
 
 def logout_user_use_case(
     session: AsyncSession = Depends(get_db),
     auth_repo: AuthRepository = Depends(get_auth_repository),
+    access_state_store: AccessStateStore = Depends(get_access_state_store),
 ) -> LogoutUserUseCase:
-    return LogoutUserUseCase(auth_repo, SqlAlchemyUnitOfWork(session))
+    return LogoutUserUseCase(auth_repo, access_state_store, SqlAlchemyUnitOfWork(session))
 
 
 def update_device_notifications_use_case(
@@ -182,13 +181,6 @@ def update_device_notifications_use_case(
     auth_repo: AuthRepository = Depends(get_auth_repository),
 ) -> UpdateDeviceNotificationsUseCase:
     return UpdateDeviceNotificationsUseCase(auth_repo, SqlAlchemyUnitOfWork(session))
-
-
-def validate_access_token_use_case(
-    auth_repo: AuthRepository = Depends(get_auth_repository),
-    token_service: TokenService = Depends(get_token_service),
-) -> ValidateAccessTokenUseCase:
-    return ValidateAccessTokenUseCase(auth_repo, token_service)
 
 
 LoginUserUseCaseDep = Annotated[LoginUserUseCase, Depends(login_user_use_case)]
@@ -202,28 +194,3 @@ UpdateDeviceNotificationsUseCaseDep = Annotated[
     UpdateDeviceNotificationsUseCase,
     Depends(update_device_notifications_use_case),
 ]
-
-
-async def get_current_session_context(
-    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(http_bearer)],
-    use_case: Annotated[ValidateAccessTokenUseCase, Depends(validate_access_token_use_case)],
-) -> tuple[UUID, UUID]:
-    if creds is None or not creds.credentials:
-        raise api_http_exception(status.HTTP_401_UNAUTHORIZED, "missing_authorization")
-    return await use_case.execute(creds.credentials)
-
-
-async def get_current_user_id(
-    context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)],
-) -> UUID:
-    return context[0]
-
-
-async def get_current_session_id(
-    context: Annotated[tuple[UUID, UUID], Depends(get_current_session_context)],
-) -> UUID:
-    return context[1]
-
-
-CurrentUserIdDep = Annotated[UUID, Depends(get_current_user_id)]
-CurrentSessionIdDep = Annotated[UUID, Depends(get_current_session_id)]

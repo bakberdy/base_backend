@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+
+# Canonical Backend Template
+
+- This repository is the canonical foundation for future backend projects. Treat every change as reusable template architecture, not as a one-off product shortcut.
+- Prefer correctness, explicit contracts, strict failure behavior, maintainability, observability, testability, and clean boundaries over delivery speed or minimal diff size.
+- Business modules must not import another business module. Cross-module collaboration must use neutral contracts and shared value types owned by `app/common`, with concrete wiring limited to the application composition root.
+- `app/core` may compose concrete implementations, but must not contain business rules or silently translate one module's model into another module's hidden contract.
+- Infrastructure failures must never be interpreted as cache misses, missing entities, valid credentials, successful writes, empty results, or default business values.
+- Security-sensitive dependencies must fail closed. If authorization state cannot be verified, deny the operation or return an explicit dependency-unavailable error; never continue with guessed or stale permissions.
+- Cache miss is an explicit state and may use a documented authoritative read-through path. Connection errors, timeouts, malformed cached data, and serialization errors are failures, not cache misses.
+- Never swallow unexpected exceptions. Translate known infrastructure failures into stable application errors, roll back state-changing workflows, log safe diagnostic context, and let the global error boundary return the unified error contract.
+- Every externally reachable failure path must be handled by the shared exception boundary. Expected domain, validation, rate-limit, infrastructure, and unexpected errors must all use the same public response structure without exposing secrets or internal exception text.
+- State-changing workflows spanning PostgreSQL and Redis must define ordering, rollback, retry, and partial-failure behavior explicitly. Security consistency must take priority over availability.
+- New reusable behavior requires focused unit coverage and critical wiring/security behavior requires integration coverage. A template change is incomplete until formatter, lint, type checks, focused tests, and diff checks pass.

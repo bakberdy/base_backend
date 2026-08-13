@@ -5,11 +5,10 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.common.localization.service import translate
 from app.common.pagination.schemas import PaginatedResponse, SortingMethod, build_base_list_request
+from app.core.authentication import CurrentSessionIdDep, CurrentUserIdDep
 from app.core.config import get_settings
 from app.core.security import limiter
 from app.modules.auth.api.dependencies import (
-    CurrentSessionIdDep,
-    CurrentUserIdDep,
     GetSessionsUseCaseDep,
     LoginUserUseCaseDep,
     LogoutUserUseCaseDep,

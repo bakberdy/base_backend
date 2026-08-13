@@ -61,6 +61,7 @@ async def create_tables(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_ensure_user_profiles_phone_columns)
+        await conn.run_sync(_ensure_users_authorization_version)
 
 
 def _ensure_user_profiles_phone_columns(connection) -> None:
@@ -77,3 +78,15 @@ def _ensure_user_profiles_phone_columns(connection) -> None:
     for name, column_type in missing_columns:
         if name not in columns:
             connection.execute(text(f"ALTER TABLE user_profiles ADD COLUMN {name} {column_type}"))
+
+
+def _ensure_users_authorization_version(connection) -> None:
+    inspector = inspect(connection)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "authorization_version" not in columns:
+        connection.execute(
+            text("ALTER TABLE users ADD COLUMN authorization_version INTEGER NOT NULL DEFAULT 1")
+        )

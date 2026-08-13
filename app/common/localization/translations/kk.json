@@ -1,10 +1,12 @@
 {
   "all_sessions_deleted": "барлық сессиялар жойылды",
+  "dependency_unavailable": "Қажетті қызмет уақытша қолжетімсіз",
   "field_required": "Өріс міндетті",
   "forbidden": "Рұқсат жоқ",
   "invalid_boolean": "Логикалық мән жарамсыз",
   "invalid_avatar_upload": "Аватар жүктеу жарамсыз",
   "invalid_credentials": "Кіру деректері қате",
+  "invalid_dependency_state": "Қажетті қызмет жарамсыз деректер қайтарды",
   "invalid_format": "Пішімі жарамсыз",
   "invalid_integer": "Сан жарамсыз",
   "invalid_login_request": "Кіру сұрауы жарамсыз",

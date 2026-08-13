@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.common.authorization.repositories import AccessStateStore
 from app.modules.users.application.dto import UnitOfWork, UserDto
 from app.modules.users.domain.enums import UserStatus
 from app.modules.users.domain.exceptions import InvalidUserStatusTransitionError, UserNotFoundError
@@ -7,8 +8,14 @@ from app.modules.users.domain.repositories import UserRepository
 
 
 class RequestAccountDeletionUseCase:
-    def __init__(self, user_repository: UserRepository, unit_of_work: UnitOfWork) -> None:
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        access_state_store: AccessStateStore,
+        unit_of_work: UnitOfWork,
+    ) -> None:
         self._users = user_repository
+        self._access_state = access_state_store
         self._unit_of_work = unit_of_work
 
     async def execute(self, user_id: UUID) -> UserDto:
@@ -22,6 +29,9 @@ class RequestAccountDeletionUseCase:
             if updated is None:
                 await self._unit_of_work.rollback()
                 raise UserNotFoundError()
+            await self._access_state.set_authorization_version(
+                updated.id, updated.authorization_version
+            )
             await self._unit_of_work.commit()
         except Exception:
             await self._unit_of_work.rollback()

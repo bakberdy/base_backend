@@ -153,7 +153,7 @@ def test_get_users_forwards_filters_for_super_admin() -> None:
         created_at_to = datetime.now(UTC)
 
         result = await use_case.execute(
-            actor.id,
+            actor.role,
             UserListRequest(
                 page_number=1,
                 limit=20,
@@ -201,7 +201,7 @@ def test_get_users_admin_role_filter_cannot_escape_user_scope() -> None:
         use_case = GetUsersUseCase(repository)
 
         result = await use_case.execute(
-            actor.id,
+            actor.role,
             UserListRequest(
                 page_number=1,
                 limit=20,

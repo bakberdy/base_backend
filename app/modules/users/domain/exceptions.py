@@ -1,4 +1,4 @@
-from app.common.exceptions.base import ApplicationError
+from app.common.exceptions.base import ApplicationError, ForbiddenError
 
 
 class UserNotFoundError(ApplicationError):
@@ -6,9 +6,8 @@ class UserNotFoundError(ApplicationError):
         super().__init__("USER_NOT_FOUND")
 
 
-class ForbiddenUserActionError(ApplicationError):
-    def __init__(self) -> None:
-        super().__init__("FORBIDDEN")
+class ForbiddenUserActionError(ForbiddenError):
+    pass
 
 
 class UserProfileAlreadyExistsError(ApplicationError):
