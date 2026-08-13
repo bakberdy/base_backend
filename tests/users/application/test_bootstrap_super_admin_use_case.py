@@ -8,6 +8,7 @@ from app.modules.users.application.use_cases.bootstrap_super_admin import (
 )
 from app.modules.users.domain.entities import User
 from app.modules.users.domain.enums import UserRole, UserStatus
+from tests.access_state import AccessStateStoreSpy
 
 
 class UserRepositoryFake:
@@ -22,7 +23,11 @@ class UserRepositoryFake:
 
     async def update_role(self, _user_id, role: UserRole) -> User:
         self.updated_roles.append(role)
-        self.user = replace(self.user, role=role)
+        self.user = replace(
+            self.user,
+            role=role,
+            authorization_version=self.user.authorization_version + 1,
+        )
         return self.user
 
 
@@ -54,7 +59,7 @@ def test_bootstrap_promotes_user_and_normalizes_email() -> None:
     unit_of_work = UnitOfWorkSpy()
 
     result = asyncio.run(
-        BootstrapSuperAdminUseCase(repository, unit_of_work).execute(
+        BootstrapSuperAdminUseCase(repository, AccessStateStoreSpy(), unit_of_work).execute(
             "  Initial.Admin@Example.COM ",
         )
     )
@@ -71,7 +76,7 @@ def test_bootstrap_is_idempotent_for_existing_super_admin() -> None:
     unit_of_work = UnitOfWorkSpy()
 
     result = asyncio.run(
-        BootstrapSuperAdminUseCase(repository, unit_of_work).execute(
+        BootstrapSuperAdminUseCase(repository, AccessStateStoreSpy(), unit_of_work).execute(
             "initial.admin@example.com",
         )
     )

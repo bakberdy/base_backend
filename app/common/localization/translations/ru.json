@@ -1,10 +1,12 @@
 {
   "all_sessions_deleted": "все сессии удалены",
+  "dependency_unavailable": "Необходимый сервис временно недоступен",
   "field_required": "Поле обязательно",
   "forbidden": "Доступ запрещен",
   "invalid_boolean": "Недопустимое логическое значение",
   "invalid_avatar_upload": "Недопустимая загрузка аватара",
   "invalid_credentials": "Неверные учетные данные",
+  "invalid_dependency_state": "Необходимый сервис вернул некорректные данные",
   "invalid_format": "Недопустимый формат",
   "invalid_integer": "Недопустимое число",
   "invalid_login_request": "Недействительный запрос входа",

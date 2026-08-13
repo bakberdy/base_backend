@@ -3,9 +3,13 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.authorization.repositories import AccessStateStore, SessionRevocationRepository
 from app.core.database import SqlAlchemyUnitOfWork, get_db
-from app.modules.auth.domain.repositories import AuthRepository
-from app.modules.auth.infrastructure.sqlalchemy_repositories import SqlAlchemyAuthRepository
+from app.core.dependencies import (
+    get_access_state_store,
+    get_session_revocation_repository,
+    get_user_repository,
+)
 from app.modules.users.application.use_cases.approve_user_deletion_request import (
     ApproveUserDeletionRequestUseCase,
 )
@@ -35,15 +39,6 @@ from app.modules.users.application.use_cases.update_user_profile import UpdateUs
 from app.modules.users.domain.repositories import UserRepository
 from app.modules.users.domain.services import AvatarStorageService
 from app.modules.users.infrastructure.local_avatar_storage import LocalAvatarStorageService
-from app.modules.users.infrastructure.sqlalchemy_repositories import SqlAlchemyUserRepository
-
-
-def get_user_repository(session: AsyncSession = Depends(get_db)) -> UserRepository:
-    return SqlAlchemyUserRepository(session)
-
-
-def get_auth_repository(session: AsyncSession = Depends(get_db)) -> AuthRepository:
-    return SqlAlchemyAuthRepository(session)
 
 
 def get_avatar_storage() -> AvatarStorageService:
@@ -81,15 +76,17 @@ def get_current_user_profile_use_case(
 def change_user_role_use_case(
     session: AsyncSession = Depends(get_db),
     repo: UserRepository = Depends(get_user_repository),
+    access_state: AccessStateStore = Depends(get_access_state_store),
 ) -> ChangeUserRoleUseCase:
-    return ChangeUserRoleUseCase(repo, SqlAlchemyUnitOfWork(session))
+    return ChangeUserRoleUseCase(repo, access_state, SqlAlchemyUnitOfWork(session))
 
 
 def change_user_status_use_case(
     session: AsyncSession = Depends(get_db),
     repo: UserRepository = Depends(get_user_repository),
+    access_state: AccessStateStore = Depends(get_access_state_store),
 ) -> ChangeUserStatusUseCase:
-    return ChangeUserStatusUseCase(repo, SqlAlchemyUnitOfWork(session))
+    return ChangeUserStatusUseCase(repo, access_state, SqlAlchemyUnitOfWork(session))
 
 
 def create_user_profile_use_case(
@@ -145,16 +142,23 @@ def update_user_preferences_use_case(
 def request_account_deletion_use_case(
     session: AsyncSession = Depends(get_db),
     repo: UserRepository = Depends(get_user_repository),
+    access_state: AccessStateStore = Depends(get_access_state_store),
 ) -> RequestAccountDeletionUseCase:
-    return RequestAccountDeletionUseCase(repo, SqlAlchemyUnitOfWork(session))
+    return RequestAccountDeletionUseCase(repo, access_state, SqlAlchemyUnitOfWork(session))
 
 
 def approve_user_deletion_request_use_case(
     session: AsyncSession = Depends(get_db),
     user_repo: UserRepository = Depends(get_user_repository),
-    auth_repo: AuthRepository = Depends(get_auth_repository),
+    auth_repo: SessionRevocationRepository = Depends(get_session_revocation_repository),
+    access_state: AccessStateStore = Depends(get_access_state_store),
 ) -> ApproveUserDeletionRequestUseCase:
-    return ApproveUserDeletionRequestUseCase(user_repo, auth_repo, SqlAlchemyUnitOfWork(session))
+    return ApproveUserDeletionRequestUseCase(
+        user_repo,
+        auth_repo,
+        access_state,
+        SqlAlchemyUnitOfWork(session),
+    )
 
 
 GetUsersUseCaseDep = Annotated[GetUsersUseCase, Depends(get_users_use_case)]

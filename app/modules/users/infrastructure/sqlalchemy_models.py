@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -26,6 +26,12 @@ class UserModel(Base):
         default=UserStatus.ACTIVE.value,
         server_default=UserStatus.ACTIVE.value,
         index=True,
+    )
+    authorization_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
     )
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

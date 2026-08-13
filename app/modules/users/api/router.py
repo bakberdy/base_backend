@@ -4,8 +4,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
+from app.common.authorization.entities import CurrentPrincipal
 from app.common.pagination.schemas import PaginatedResponse, SortingMethod, build_base_list_request
-from app.modules.auth.api.dependencies import CurrentUserIdDep
+from app.core.authentication import CurrentUserIdDep, require_roles
 from app.modules.users.api.dependencies import (
     ApproveUserDeletionRequestUseCaseDep,
     ChangeUserRoleUseCaseDep,
@@ -75,6 +76,14 @@ def get_user_list_request(
 
 
 UserListDep = Annotated[UserListRequest, Depends(get_user_list_request)]
+AdminPrincipalDep = Annotated[
+    CurrentPrincipal,
+    Depends(require_roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)),
+]
+SuperAdminPrincipalDep = Annotated[
+    CurrentPrincipal,
+    Depends(require_roles(UserRole.SUPER_ADMIN)),
+]
 
 
 @router.get(
@@ -84,11 +93,11 @@ UserListDep = Annotated[UserListRequest, Depends(get_user_list_request)]
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_list(
-    user_id: CurrentUserIdDep,
+    principal: AdminPrincipalDep,
     request: UserListDep,
     use_case: GetUsersUseCaseDep,
 ) -> PaginatedResponse[UserResponse]:
-    result = await use_case.execute(user_id, request)
+    result = await use_case.execute(principal.role, request)
     return PaginatedResponse(
         items=[UserResponse.from_dto(item) for item in result.items],
         pagination=result.pagination,
@@ -235,11 +244,11 @@ async def users_request_delete(
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_get(
-    current_user_id: CurrentUserIdDep,
+    principal: AdminPrincipalDep,
     user_id: UUID,
     use_case: GetUserByIdUseCaseDep,
 ) -> UserResponse:
-    return UserResponse.from_dto(await use_case.execute(current_user_id, user_id))
+    return UserResponse.from_dto(await use_case.execute(principal.role, user_id))
 
 
 @router.get(
@@ -249,11 +258,11 @@ async def users_get(
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_get_profile(
-    current_user_id: CurrentUserIdDep,
+    principal: AdminPrincipalDep,
     user_id: UUID,
     use_case: GetUserProfileByIdUseCaseDep,
 ) -> UserProfileResponse:
-    return UserProfileResponse.from_dto(await use_case.execute(current_user_id, user_id))
+    return UserProfileResponse.from_dto(await use_case.execute(principal.role, user_id))
 
 
 @router.patch(
@@ -263,12 +272,12 @@ async def users_get_profile(
     description=SUPER_ADMIN_ONLY_DESCRIPTION,
 )
 async def users_update_role(
-    current_user_id: CurrentUserIdDep,
+    principal: SuperAdminPrincipalDep,
     user_id: UUID,
     body: UpdateUserRoleRequest,
     use_case: ChangeUserRoleUseCaseDep,
 ) -> UserResponse:
-    return UserResponse.from_dto(await use_case.execute(current_user_id, user_id, body.role))
+    return UserResponse.from_dto(await use_case.execute(principal.role, user_id, body.role))
 
 
 @router.patch(
@@ -278,12 +287,12 @@ async def users_update_role(
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def users_update_status(
-    current_user_id: CurrentUserIdDep,
+    principal: AdminPrincipalDep,
     user_id: UUID,
     body: UpdateUserStatusRequest,
     use_case: ChangeUserStatusUseCaseDep,
 ) -> UserResponse:
-    return UserResponse.from_dto(await use_case.execute(current_user_id, user_id, body.status))
+    return UserResponse.from_dto(await use_case.execute(principal.role, user_id, body.status))
 
 
 @router.post(
@@ -293,8 +302,8 @@ async def users_update_status(
     description=ADMIN_ONLY_DESCRIPTION,
 )
 async def admin_users_approve_deletion_request(
-    current_user_id: CurrentUserIdDep,
+    principal: AdminPrincipalDep,
     user_id: UUID,
     use_case: ApproveUserDeletionRequestUseCaseDep,
 ) -> UserResponse:
-    return UserResponse.from_dto(await use_case.execute(current_user_id, user_id))
+    return UserResponse.from_dto(await use_case.execute(principal.role, user_id))

@@ -4,6 +4,7 @@ from uuid import UUID
 import jwt
 from jwt import ExpiredSignatureError, PyJWTError
 
+from app.common.authorization.enums import UserRole
 from app.modules.auth.domain.exceptions import InvalidTokenError, TokenExpiredError
 from app.modules.auth.domain.services import TokenService
 
@@ -22,11 +23,19 @@ class JwtTokenService(TokenService):
         self._access_expire_minutes = access_expire_minutes
         self._refresh_expire_days = refresh_expire_days
 
-    def create_access_token(self, user_id: UUID, session_id: UUID) -> str:
+    def create_access_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        role: UserRole,
+        authorization_version: int,
+    ) -> str:
         now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
             "sid": str(session_id),
+            "role": role.value,
+            "av": authorization_version,
             "typ": "access",
             "iat": int(now.timestamp()),
             "exp": int((now + timedelta(minutes=self._access_expire_minutes)).timestamp()),

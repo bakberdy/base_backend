@@ -2,10 +2,10 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
+from app.common.authorization.repositories import AuthorizationIdentityRepository
 from app.modules.auth.application.dto import DeviceInfo, LoginResultDto, UnitOfWork
 from app.modules.auth.domain.repositories import AuthRepository, LoginRequestStore
 from app.modules.auth.domain.services import OtpCodeProvider, PasswordHasher
-from app.modules.users.domain.repositories import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class LoginUserUseCase:
         self,
         auth_repository: AuthRepository,
         login_request_store: LoginRequestStore,
-        user_repository: UserRepository,
+        user_repository: AuthorizationIdentityRepository,
         password_hasher: PasswordHasher,
         otp_provider: OtpCodeProvider,
         unit_of_work: UnitOfWork,

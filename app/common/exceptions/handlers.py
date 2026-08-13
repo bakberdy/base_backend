@@ -6,7 +6,9 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from redis.exceptions import RedisError
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.exceptions.base import ApplicationError
@@ -36,18 +38,20 @@ _VALIDATION_MESSAGE_KEYS = {
 
 _APPLICATION_STATUS_CODES = {
     "FORBIDDEN": status.HTTP_403_FORBIDDEN,
+    "DEPENDENCY_UNAVAILABLE": status.HTTP_503_SERVICE_UNAVAILABLE,
     "INVALID_CREDENTIALS": status.HTTP_400_BAD_REQUEST,
+    "INVALID_DEPENDENCY_STATE": status.HTTP_503_SERVICE_UNAVAILABLE,
     "INVALID_AVATAR_UPLOAD": status.HTTP_400_BAD_REQUEST,
     "INVALID_LOGIN_REQUEST": status.HTTP_400_BAD_REQUEST,
     "INVALID_OTP": status.HTTP_400_BAD_REQUEST,
     "INVALID_REFRESH_TOKEN": status.HTTP_401_UNAUTHORIZED,
-    "INVALID_SORT_KEY": status.HTTP_422_UNPROCESSABLE_ENTITY,
+    "INVALID_SORT_KEY": status.HTTP_422_UNPROCESSABLE_CONTENT,
     "INVALID_TOKEN": status.HTTP_401_UNAUTHORIZED,
     "INVALID_USER_STATUS_TRANSITION": status.HTTP_400_BAD_REQUEST,
     "LOGIN_REQUEST_ALREADY_USED": status.HTTP_410_GONE,
     "OTP_EXPIRED": status.HTTP_410_GONE,
     "OTP_DELIVERY_FAILED": status.HTTP_503_SERVICE_UNAVAILABLE,
-    "OTP_RECIPIENT_REJECTED": status.HTTP_422_UNPROCESSABLE_ENTITY,
+    "OTP_RECIPIENT_REJECTED": status.HTTP_422_UNPROCESSABLE_CONTENT,
     "SESSION_ALREADY_REVOKED": status.HTTP_401_UNAUTHORIZED,
     "SESSION_NOT_FOUND": status.HTTP_404_NOT_FOUND,
     "SESSION_REVOKED": status.HTTP_401_UNAUTHORIZED,
@@ -280,9 +284,30 @@ async def unhandled_exception_handler(request: Request, _exc: Exception) -> JSON
     return JSONResponse(status_code=500, content=body.model_dump(mode="json"))
 
 
+async def dependency_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    dependency = "redis" if isinstance(exc, RedisError) else "postgresql"
+    logger.exception(
+        "dependency_unavailable dependency=%s method=%s path=%s request_id=%s",
+        dependency,
+        request.method,
+        request.url.path,
+        get_request_id(),
+    )
+    body = _localized_response(
+        ErrorResponse(
+            message="dependency_unavailable",
+            details=ErrorDetails(status_code=503, type=ErrorType.ALERT),
+            code=503,
+        ),
+    )
+    return JSONResponse(status_code=503, content=body.model_dump(mode="json"))
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(ApplicationError, application_exception_handler)
     app.add_exception_handler(RateLimitExceeded, rate_limit_exception_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(RedisError, dependency_exception_handler)
+    app.add_exception_handler(SQLAlchemyError, dependency_exception_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

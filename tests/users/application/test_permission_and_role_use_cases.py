@@ -8,6 +8,7 @@ from app.modules.users.application.use_cases.change_user_role import ChangeUserR
 from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 from app.modules.users.domain.exceptions import ForbiddenUserActionError
+from tests.access_state import AccessStateStoreSpy
 
 
 class UnitOfWorkSpy:
@@ -81,6 +82,7 @@ class UserRepositorySpy:
             status=user.status,
             is_verified=user.is_verified,
             created_at=user.created_at,
+            authorization_version=user.authorization_version + 1,
         )
 
     async def update_status(self, user_id: UUID, status: UserStatus) -> User | None:
@@ -164,9 +166,9 @@ def make_user(*, role: UserRole, status: UserStatus = UserStatus.ACTIVE) -> User
 
 
 def execute(
-    use_case: ChangeUserRoleUseCase, actor_id: UUID, target_id: UUID, role: UserRole
+    use_case: ChangeUserRoleUseCase, actor_role: UserRole, target_id: UUID, role: UserRole
 ) -> UserDto:
-    return asyncio.run(use_case.execute(actor_id, target_id, role))
+    return asyncio.run(use_case.execute(actor_role, target_id, role))
 
 
 def test_super_admin_can_change_user_role() -> None:
@@ -174,13 +176,15 @@ def test_super_admin_can_change_user_role() -> None:
     target = make_user(role=UserRole.USER)
     repository = UserRepositorySpy({actor.id: actor, target.id: target})
     unit_of_work = UnitOfWorkSpy()
-    use_case = ChangeUserRoleUseCase(repository, unit_of_work)
+    access_state = AccessStateStoreSpy()
+    use_case = ChangeUserRoleUseCase(repository, access_state, unit_of_work)
 
-    result = execute(use_case, actor.id, target.id, UserRole.ADMIN)
+    result = execute(use_case, actor.role, target.id, UserRole.ADMIN)
 
     assert result.id == target.id
     assert result.role == UserRole.ADMIN
     assert repository.updated_roles == [(target.id, UserRole.ADMIN)]
+    assert access_state.versions == [(target.id, 2)]
     assert unit_of_work.commits == 1
     assert unit_of_work.rollbacks == 0
 
@@ -190,10 +194,10 @@ def test_admin_cannot_escalate_roles() -> None:
     target = make_user(role=UserRole.USER)
     repository = UserRepositorySpy({actor.id: actor, target.id: target})
     unit_of_work = UnitOfWorkSpy()
-    use_case = ChangeUserRoleUseCase(repository, unit_of_work)
+    use_case = ChangeUserRoleUseCase(repository, AccessStateStoreSpy(), unit_of_work)
 
     try:
-        execute(use_case, actor.id, target.id, UserRole.ADMIN)
+        execute(use_case, actor.role, target.id, UserRole.ADMIN)
     except ForbiddenUserActionError:
         pass
     else:

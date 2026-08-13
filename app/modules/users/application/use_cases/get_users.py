@@ -1,9 +1,6 @@
-from uuid import UUID
-
 from app.common.pagination.schemas import BaseListRequest
 from app.common.pagination.utils import build_pagination_meta, pagination_offset
 from app.modules.users.application.dto import UserDto, UsersPageDto
-from app.modules.users.application.use_cases._permissions import get_admin_actor
 from app.modules.users.domain.enums import UserRole
 from app.modules.users.domain.repositories import UserRepository
 
@@ -12,10 +9,9 @@ class GetUsersUseCase:
     def __init__(self, user_repository: UserRepository) -> None:
         self._users = user_repository
 
-    async def execute(self, actor_id: UUID, request: BaseListRequest) -> UsersPageDto:
-        actor = await get_admin_actor(self._users, actor_id)
+    async def execute(self, actor_role: UserRole, request: BaseListRequest) -> UsersPageDto:
         requested_role = getattr(request, "role", None)
-        if actor.role == UserRole.SUPER_ADMIN:
+        if actor_role == UserRole.SUPER_ADMIN:
             role_filter = requested_role
         elif requested_role not in (None, UserRole.USER):
             return UsersPageDto(

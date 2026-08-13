@@ -2,12 +2,13 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
+from app.common.authorization.repositories import AuthorizationIdentityRepository
 from app.common.pagination.schemas import SortingMethod
 from app.modules.users.domain.entities import PhoneNumber, User, UserPreferences, UserProfile
 from app.modules.users.domain.enums import UserLanguage, UserRole, UserStatus, UserTheme
 
 
-class UserRepository(Protocol):
+class UserRepository(AuthorizationIdentityRepository, Protocol):
     async def get_by_email(self, email: str) -> User | None: ...
 
     async def get_by_id(self, user_id: UUID) -> User | None: ...

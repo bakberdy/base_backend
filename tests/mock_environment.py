@@ -17,7 +17,7 @@ MOCK_ENVIRONMENT = {
     "REDIS_PORT": "6379",
     "REDIS_DB": "0",
     "DATABASE_CONNECT_TIMEOUT": "5",
-    "JWT_SECRET_KEY": "mock-jwt-secret-key",
+    "JWT_SECRET_KEY": "synthetic-mock-jwt-secret-key-32-bytes",
     "JWT_ALGORITHM": "HS256",
     "ACCESS_TOKEN_EXPIRE_MINUTES": "1",
     "REFRESH_TOKEN_EXPIRE_DAYS": "14",

@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.common.authorization.enums import UserStatus
+from app.common.authorization.repositories import AccessStateStore, AuthorizationIdentityRepository
 from app.modules.auth.application.dto import TokenPairDto, UnitOfWork
 from app.modules.auth.domain.enums import TokenType
 from app.modules.auth.domain.exceptions import (
@@ -16,14 +18,18 @@ class RefreshTokenUseCase:
     def __init__(
         self,
         auth_repository: AuthRepository,
+        user_repository: AuthorizationIdentityRepository,
         token_service: TokenService,
+        access_state_store: AccessStateStore,
         password_hasher: PasswordHasher,
         unit_of_work: UnitOfWork,
         *,
         refresh_expire_days: int,
     ) -> None:
         self._auth = auth_repository
+        self._users = user_repository
         self._tokens = token_service
+        self._access_state = access_state_store
         self._hasher = password_hasher
         self._unit_of_work = unit_of_work
         self._refresh_expire_days = refresh_expire_days
@@ -34,6 +40,7 @@ class RefreshTokenUseCase:
             return False
         if datetime.now(UTC).timestamp() < float(exp):
             await self._auth.revoke_all_active_for_user(user_id, datetime.now(UTC))
+            await self._access_state.revoke_all_sessions(user_id)
             return True
         return False
 
@@ -56,21 +63,28 @@ class RefreshTokenUseCase:
                 raise InvalidRefreshTokenError()
             if session.user_id != user_id:
                 await self._auth.revoke_all_active_for_user(user_id, now)
+                await self._access_state.revoke_all_sessions(user_id)
                 await self._unit_of_work.commit()
                 committed_before_error = True
                 raise InvalidRefreshTokenError()
             if session.expires_at < now:
                 await self._auth.revoke_session_by_id(session_id, now)
+                await self._access_state.revoke_session(user_id, session_id)
                 await self._unit_of_work.commit()
                 committed_before_error = True
                 raise TokenExpiredError()
             if not self._hasher.verify_refresh_hash(refresh_token, session.refresh_token_hash):
                 await self._auth.revoke_all_active_for_user(session.user_id, now)
+                await self._access_state.revoke_all_sessions(session.user_id)
                 await self._unit_of_work.commit()
                 committed_before_error = True
                 raise InvalidRefreshTokenError()
 
             await self._auth.revoke_session_by_id(session_id, now)
+            await self._access_state.revoke_session(user_id, session_id)
+            user = await self._users.get_by_id(user_id)
+            if user is None or user.status != UserStatus.ACTIVE:
+                raise InvalidRefreshTokenError()
             new_session_id = uuid4()
             new_refresh = self._tokens.create_refresh_token(user_id, new_session_id)
             await self._auth.create_session(
@@ -83,7 +97,12 @@ class RefreshTokenUseCase:
                 last_active_at=now,
             )
             await self._auth.touch_user_device(session.user_device_id, now)
-            access_token = self._tokens.create_access_token(user_id, new_session_id)
+            access_token = self._tokens.create_access_token(
+                user_id,
+                new_session_id,
+                user.role,
+                user.authorization_version,
+            )
             await self._unit_of_work.commit()
         except Exception:
             if not committed_before_error:

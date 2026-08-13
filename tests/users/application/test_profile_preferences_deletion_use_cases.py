@@ -29,6 +29,7 @@ from app.modules.users.domain.exceptions import (
     InvalidUserStatusTransitionError,
     UserProfileAlreadyExistsError,
 )
+from tests.access_state import AccessStateStoreSpy
 
 
 class UnitOfWorkSpy:
@@ -132,6 +133,7 @@ class UserRepositorySpy:
             is_verified=user.is_verified,
             created_at=user.created_at,
             is_user_data_uploaded=user.is_user_data_uploaded,
+            authorization_version=user.authorization_version + 1,
         )
         self.users[user_id] = updated
         return updated
@@ -403,11 +405,17 @@ def test_account_deletion_request_and_admin_approval_soft_delete_user() -> None:
         repo = UserRepositorySpy({admin.id: admin, user.id: user})
         auth_repo = AuthRepositorySpy()
 
-        requested = await RequestAccountDeletionUseCase(repo, UnitOfWorkSpy()).execute(user.id)
+        access_state = AccessStateStoreSpy()
+        requested = await RequestAccountDeletionUseCase(
+            repo, access_state, UnitOfWorkSpy()
+        ).execute(user.id)
         approved = await ApproveUserDeletionRequestUseCase(
-            repo, cast(AuthRepository, auth_repo), UnitOfWorkSpy()
+            repo,
+            cast(AuthRepository, auth_repo),
+            access_state,
+            UnitOfWorkSpy(),
         ).execute(
-            admin.id,
+            admin.role,
             user.id,
         )
 
@@ -428,9 +436,10 @@ def test_admin_approval_requires_deletion_requested_status() -> None:
             await ApproveUserDeletionRequestUseCase(
                 repo,
                 cast(AuthRepository, AuthRepositorySpy()),
+                AccessStateStoreSpy(),
                 UnitOfWorkSpy(),
             ).execute(
-                admin.id,
+                admin.role,
                 user.id,
             )
 

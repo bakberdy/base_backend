@@ -14,6 +14,7 @@ class User:
     is_verified: bool
     created_at: datetime
     is_user_data_uploaded: bool = False
+    authorization_version: int = 1
 
 
 @dataclass(slots=True)

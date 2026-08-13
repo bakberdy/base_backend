@@ -26,6 +26,7 @@ def _to_entity(model: UserModel) -> User:
         is_verified=model.is_verified,
         created_at=model.created_at,
         is_user_data_uploaded=profile_uploaded,
+        authorization_version=model.authorization_version,
     )
 
 
@@ -151,6 +152,7 @@ class SqlAlchemyUserRepository(UserRepository):
             email=email,
             role=UserRole.USER.value,
             status=UserStatus.ACTIVE.value,
+            authorization_version=1,
             is_verified=False,
             created_at=now,
         )
@@ -231,7 +233,10 @@ class SqlAlchemyUserRepository(UserRepository):
         stmt = (
             update(UserModel)
             .where(UserModel.id == user_id)
-            .values(role=role.value)
+            .values(
+                role=role.value,
+                authorization_version=UserModel.authorization_version + 1,
+            )
             .returning(UserModel)
         )
         result = await self._session.execute(stmt)
@@ -242,7 +247,10 @@ class SqlAlchemyUserRepository(UserRepository):
         stmt = (
             update(UserModel)
             .where(UserModel.id == user_id)
-            .values(status=status.value)
+            .values(
+                status=status.value,
+                authorization_version=UserModel.authorization_version + 1,
+            )
             .returning(UserModel)
         )
         result = await self._session.execute(stmt)

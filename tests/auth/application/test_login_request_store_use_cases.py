@@ -12,6 +12,7 @@ from app.modules.auth.domain.exceptions import InvalidOtpError
 from app.modules.users.domain.entities import User
 from app.modules.users.domain.enums import UserRole, UserStatus
 from app.modules.users.domain.repositories import UserRepository
+from tests.access_state import AccessStateStoreSpy
 
 
 class UnitOfWorkSpy:
@@ -57,7 +58,13 @@ class OtpProviderSpy:
 
 
 class TokenServiceStub:
-    def create_access_token(self, user_id: UUID, session_id: UUID) -> str:
+    def create_access_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        role: UserRole,
+        authorization_version: int,
+    ) -> str:
         return f"access:{user_id}:{session_id}"
 
     def create_refresh_token(self, user_id: UUID, session_id: UUID) -> str:
@@ -357,6 +364,7 @@ def test_verify_email_decrements_attempts_in_login_request_store_for_invalid_cod
         login_requests,
         cast(UserRepository, UserRepositorySpy(user)),
         TokenServiceStub(),
+        AccessStateStoreSpy(),
         PasswordHasherStub(),
         unit_of_work,
         refresh_expire_days=14,
@@ -398,6 +406,7 @@ def test_verify_email_marks_login_request_consumed_and_creates_session() -> None
         login_requests,
         cast(UserRepository, users),
         TokenServiceStub(),
+        AccessStateStoreSpy(),
         PasswordHasherStub(),
         unit_of_work,
         refresh_expire_days=14,

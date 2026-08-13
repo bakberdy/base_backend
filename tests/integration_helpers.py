@@ -75,6 +75,8 @@ def create_authenticated_user(
     assert login_response.status_code == 202
 
     login_request_id = str(login_response.json()["login_request_id"])
+    user_id = get_user_id_by_email(client, resolved_email)
+    set_user_role_and_status(client, resolved_email, role=role, status=status)
     verify_response = client.post(
         "/auth/verify-email",
         json={
@@ -86,8 +88,6 @@ def create_authenticated_user(
     assert verify_response.status_code == 200
     token_pair = verify_response.json()
 
-    user_id = get_user_id_by_email(client, resolved_email)
-    set_user_role_and_status(client, resolved_email, role=role, status=status)
     return AuthenticatedUser(
         id=user_id,
         email=resolved_email,
@@ -115,7 +115,11 @@ def set_user_role_and_status(
         await session.execute(
             update(UserModel)
             .where(UserModel.email == email)
-            .values(role=role.value, status=status.value),
+            .values(
+                role=role.value,
+                status=status.value,
+                authorization_version=UserModel.authorization_version + 1,
+            ),
         )
         await session.commit()
 

@@ -4,6 +4,7 @@ alwaysApply: true
 
 # Rule Router Agent
 
+- Always apply `template-foundation.mdc`; this repository is a canonical reusable backend template.
 - Before answering or editing, map the user request to only the rule files needed for that task.
 - Do not apply every rule file by default. Use the smallest useful rule set.
 - Always include `scope.mdc` when deciding whether a rule applies.

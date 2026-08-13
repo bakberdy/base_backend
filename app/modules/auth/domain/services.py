@@ -1,9 +1,17 @@
 from typing import Protocol
 from uuid import UUID
 
+from app.common.authorization.enums import UserRole
+
 
 class TokenService(Protocol):
-    def create_access_token(self, user_id: UUID, session_id: UUID) -> str: ...
+    def create_access_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        role: UserRole,
+        authorization_version: int,
+    ) -> str: ...
 
     def create_refresh_token(self, user_id: UUID, session_id: UUID) -> str: ...
 

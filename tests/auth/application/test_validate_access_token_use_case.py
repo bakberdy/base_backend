@@ -2,6 +2,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+from app.common.authorization.entities import CachedAccessState, CurrentPrincipal
 from app.common.pagination.schemas import SortingMethod
 from app.modules.auth.application.use_cases.validate_access_token import ValidateAccessTokenUseCase
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserSession
@@ -11,13 +12,22 @@ from app.modules.auth.domain.exceptions import (
     SessionNotFoundError,
     SessionRevokedError,
 )
+from app.modules.users.domain.entities import User
+from app.modules.users.domain.enums import UserRole, UserStatus
+from tests.access_state import AccessStateStoreSpy
 
 
 class TokenServiceStub:
     def __init__(self, payload: dict[str, object]) -> None:
         self.payload = payload
 
-    def create_access_token(self, user_id: UUID, session_id: UUID) -> str:
+    def create_access_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        role: UserRole,
+        authorization_version: int,
+    ) -> str:
         raise NotImplementedError
 
     def create_refresh_token(self, user_id: UUID, session_id: UUID) -> str:
@@ -129,6 +139,14 @@ class AuthRepositoryStub:
         raise NotImplementedError
 
 
+class UserRepositoryStub:
+    def __init__(self, user: User) -> None:
+        self.user = user
+
+    async def get_by_id(self, user_id: UUID) -> User | None:
+        return self.user if self.user.id == user_id else None
+
+
 def make_session(*, user_id: UUID | None = None, revoked: bool = False) -> UserSession:
     now = datetime.now(UTC)
     return UserSession(
@@ -143,7 +161,30 @@ def make_session(*, user_id: UUID | None = None, revoked: bool = False) -> UserS
     )
 
 
-def run_use_case(use_case: ValidateAccessTokenUseCase) -> tuple[UUID, UUID]:
+def make_user(user_id: UUID) -> User:
+    return User(
+        id=user_id,
+        email="user@example.com",
+        role=UserRole.USER,
+        status=UserStatus.ACTIVE,
+        is_verified=True,
+        created_at=datetime.now(UTC),
+    )
+
+
+def build_use_case(
+    session: UserSession | None, payload: dict[str, object]
+) -> ValidateAccessTokenUseCase:
+    user_id = UUID(str(payload["sub"]))
+    return ValidateAccessTokenUseCase(
+        AuthRepositoryStub(session),
+        UserRepositoryStub(make_user(user_id)),
+        TokenServiceStub(payload),
+        AccessStateStoreSpy(),
+    )
+
+
+def run_use_case(use_case: ValidateAccessTokenUseCase) -> CurrentPrincipal:
     return asyncio.run(use_case.execute("access-token"))
 
 
@@ -153,13 +194,61 @@ def test_validate_access_token_returns_user_and_session_ids() -> None:
         "typ": TokenType.ACCESS.value,
         "sub": str(session.user_id),
         "sid": str(session.id),
+        "role": UserRole.USER.value,
+        "av": 1,
     }
-    use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
+    use_case = build_use_case(session, payload)
 
-    user_id, session_id = run_use_case(use_case)
+    principal = run_use_case(use_case)
 
-    assert user_id == session.user_id
-    assert session_id == session.id
+    assert principal.user_id == session.user_id
+    assert principal.session_id == session.id
+    assert principal.role == UserRole.USER
+
+
+def test_validate_access_token_uses_complete_cached_state_without_database_reads() -> None:
+    session = make_session()
+    payload: dict[str, object] = {
+        "typ": TokenType.ACCESS.value,
+        "sub": str(session.user_id),
+        "sid": str(session.id),
+        "role": UserRole.USER.value,
+        "av": 4,
+    }
+    use_case = ValidateAccessTokenUseCase(
+        AuthRepositoryStub(None),
+        UserRepositoryStub(make_user(uuid4())),
+        TokenServiceStub(payload),
+        AccessStateStoreSpy(CachedAccessState(4, True)),
+    )
+
+    principal = run_use_case(use_case)
+
+    assert principal.authorization_version == 4
+
+
+def test_validate_access_token_rejects_stale_authorization_version_immediately() -> None:
+    session = make_session()
+    payload: dict[str, object] = {
+        "typ": TokenType.ACCESS.value,
+        "sub": str(session.user_id),
+        "sid": str(session.id),
+        "role": UserRole.ADMIN.value,
+        "av": 4,
+    }
+    use_case = ValidateAccessTokenUseCase(
+        AuthRepositoryStub(None),
+        UserRepositoryStub(make_user(uuid4())),
+        TokenServiceStub(payload),
+        AccessStateStoreSpy(CachedAccessState(5, True)),
+    )
+
+    try:
+        run_use_case(use_case)
+    except InvalidTokenError:
+        return
+
+    raise AssertionError("stale authorization version must be rejected")
 
 
 def test_validate_access_token_rejects_refresh_token_type() -> None:
@@ -168,8 +257,10 @@ def test_validate_access_token_rejects_refresh_token_type() -> None:
         "typ": TokenType.REFRESH.value,
         "sub": str(session.user_id),
         "sid": str(session.id),
+        "role": UserRole.USER.value,
+        "av": 1,
     }
-    use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
+    use_case = build_use_case(session, payload)
 
     try:
         run_use_case(use_case)
@@ -181,12 +272,15 @@ def test_validate_access_token_rejects_refresh_token_type() -> None:
 
 def test_validate_access_token_rejects_missing_session() -> None:
     session_id = uuid4()
+    user_id = uuid4()
     payload: dict[str, object] = {
         "typ": TokenType.ACCESS.value,
-        "sub": str(uuid4()),
+        "sub": str(user_id),
         "sid": str(session_id),
+        "role": UserRole.USER.value,
+        "av": 1,
     }
-    use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(None), TokenServiceStub(payload))
+    use_case = build_use_case(None, payload)
 
     try:
         run_use_case(use_case)
@@ -202,8 +296,10 @@ def test_validate_access_token_rejects_revoked_session() -> None:
         "typ": TokenType.ACCESS.value,
         "sub": str(session.user_id),
         "sid": str(session.id),
+        "role": UserRole.USER.value,
+        "av": 1,
     }
-    use_case = ValidateAccessTokenUseCase(AuthRepositoryStub(session), TokenServiceStub(payload))
+    use_case = build_use_case(session, payload)
 
     try:
         run_use_case(use_case)

@@ -8,6 +8,9 @@ from app.modules.auth.application.use_cases.refresh_token import RefreshTokenUse
 from app.modules.auth.domain.entities import DeviceInfo, LoginRequest, UserSession
 from app.modules.auth.domain.enums import TokenType
 from app.modules.auth.domain.exceptions import InvalidRefreshTokenError
+from app.modules.users.domain.entities import User
+from app.modules.users.domain.enums import UserRole, UserStatus
+from tests.access_state import AccessStateStoreSpy
 
 
 class UnitOfWorkSpy:
@@ -28,7 +31,13 @@ class TokenServiceStub:
         self.new_access_token = "new-access-token"
         self.new_refresh_token = "new-refresh-token"
 
-    def create_access_token(self, user_id: UUID, session_id: UUID) -> str:
+    def create_access_token(
+        self,
+        user_id: UUID,
+        session_id: UUID,
+        role: UserRole,
+        authorization_version: int,
+    ) -> str:
         return self.new_access_token
 
     def create_refresh_token(self, user_id: UUID, session_id: UUID) -> str:
@@ -152,6 +161,21 @@ class AuthRepositorySpy:
         raise NotImplementedError
 
 
+class UserRepositoryStub:
+    def __init__(self, user_id: UUID) -> None:
+        self.user = User(
+            id=user_id,
+            email="user@example.com",
+            role=UserRole.USER,
+            status=UserStatus.ACTIVE,
+            is_verified=True,
+            created_at=datetime.now(UTC),
+        )
+
+    async def get_by_id(self, user_id: UUID) -> User | None:
+        return self.user if self.user.id == user_id else None
+
+
 def make_session(user_id: UUID, session_id: UUID) -> UserSession:
     now = datetime.now(UTC)
     return UserSession(
@@ -184,7 +208,9 @@ def test_refresh_token_rotates_session_and_commits() -> None:
     }
     use_case = RefreshTokenUseCase(
         repository,
+        UserRepositoryStub(user_id),
         TokenServiceStub(payload),
+        AccessStateStoreSpy(),
         PasswordHasherStub(refresh_matches=True),
         unit_of_work,
         refresh_expire_days=14,
@@ -215,7 +241,9 @@ def test_refresh_token_reuse_revokes_active_sessions_and_commits() -> None:
     }
     use_case = RefreshTokenUseCase(
         repository,
+        UserRepositoryStub(user_id),
         TokenServiceStub(payload),
+        AccessStateStoreSpy(),
         PasswordHasherStub(refresh_matches=True),
         unit_of_work,
         refresh_expire_days=14,
